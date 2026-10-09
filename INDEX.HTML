@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EA FC 27 - Israeli Premier League Career Mode Pro+</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        ea: {
+                            black: '#0b0e14',
+                            card: 'rgba(18, 24, 38, 0.75)',
+                            gold: '#f3ba2f',
+                            green: '#00ff88',
+                            blue: '#1890ff',
+                            red: '#ff4d4f'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Rubik', 'Segoe UI', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Font Rubik & FontAwesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Rubik', sans-serif;
+            background: radial-gradient(circle at top center, #1a233a 0%, #080a0f 100%);
+            color: #f1f5f9;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        .glass-panel {
+            background: rgba(18, 24, 38, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 255, 136, 0.3);
+            transform: translateY(-2px);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 136, 0.4);
+        }
+
+        .glow-green { box-shadow: 0 0 15px rgba(0, 255, 136, 0.4); }
+        @keyframes playerPulse { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.12)} }
+        @keyframes ballMove { 0%{left:25%;top:40%} 25%{left:70%;top:34%} 50%{left:55%;top:68%} 75%{left:35%;top:54%} 100%{left:25%;top:40%} }
+        .live-pitch { position:relative; overflow:hidden; min-height:460px; background:repeating-linear-gradient(0deg,#14532d 0,#14532d 54px,#166534 55px,#166534 108px); border:2px solid rgba(255,255,255,.65); border-radius:14px; }
+        .live-player { position:absolute; transform:translate(-50%,-50%); border-radius:999px; min-width:34px; min-height:34px; padding:3px; display:flex; align-items:center; justify-content:center; flex-direction:column; background:#e5e7eb; color:#111827; border:2px solid white; font-size:9px; font-weight:900; box-shadow:0 3px 10px #0008; z-index:3; cursor:pointer; }
+        .live-player.home { background:#00e676; border-color:#dcfce7; } .live-player.away { background:#f8fafc; border-color:#ef4444; }
+        .live-player.selected { outline:3px solid #facc15; z-index:5; animation:playerPulse .7s infinite; }
+        .live-ball { position:absolute; width:13px;height:13px;background:white;border-radius:50%;border:2px solid #111;z-index:4;animation:ballMove 4s ease-in-out infinite; }
+        .live-line { position:absolute;border:1px solid #ffffff85;pointer-events:none; }
+        .club-badge{width:46px;height:50px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;clip-path:polygon(8% 0,92% 0,100% 12%,90% 76%,50% 100%,10% 76%,0 12%);font-weight:1000;font-size:10px;letter-spacing:-.5px;color:#fff;text-shadow:0 1px 3px #000;border:1px solid #ffffff66;filter:drop-shadow(0 3px 5px #0008);background:linear-gradient(145deg,var(--badge-a),var(--badge-b));}
+        .club-badge.small{width:27px;height:30px;font-size:7px}.club-badge.large{width:58px;height:64px;font-size:12px}
+
+    </style>
+</head>
+<body class="p-2 md:p-4 text-slate-100 min-h-screen flex flex-col">
+
+    <div id="app" class="max-w-7xl mx-auto w-full flex-1 flex flex-col">
+        <!-- מרונדר דינמית דרך JavaScript -->
+    </div>
+
+    <!-- מרכז משחק חי בסגנון Tactical View -->
+    <div id="live-match-modal" class="hidden fixed inset-0 z-[60] bg-slate-950/95 backdrop-blur-lg overflow-y-auto p-2 md:p-5">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div><div class="text-[10px] tracking-[.25em] text-ea-green font-black">CAREER MODE · LIVE SIM</div><h2 class="text-2xl md:text-3xl font-black">מרכז המשחק</h2></div>
+          <div class="flex gap-2"><button id="live-pause-btn" onclick="toggleLivePause()" class="px-4 py-2 rounded-xl bg-slate-800 font-bold text-sm">⏸ השהה</button><button onclick="changeLiveSpeed()" id="live-speed-btn" class="px-4 py-2 rounded-xl bg-slate-800 font-bold text-sm">מהירות ×1</button></div>
+        </div>
+        <div class="glass-panel rounded-2xl p-4 mb-4">
+          <div class="grid grid-cols-[1fr_auto_1fr] gap-3 items-center text-center">
+            <div><img id="live-home-badge" class="w-12 h-12 object-contain mx-auto mb-2" alt=""><div id="live-home-name" class="font-black text-sm md:text-lg"></div></div>
+            <div><div id="live-clock" class="text-ea-green text-sm font-black">00:00</div><div class="flex items-center gap-3 text-4xl md:text-6xl font-black my-1"><span id="live-home-score">0</span><span class="text-slate-600">:</span><span id="live-away-score">0</span></div><div id="live-status" class="text-[10px] text-slate-400">המשחק עומד להתחיל</div></div>
+            <div><img id="live-away-badge" class="w-12 h-12 object-contain mx-auto mb-2" alt=""><div id="live-away-name" class="font-black text-sm md:text-lg"></div></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-[1.3fr_.7fr] gap-4">
+          <div class="space-y-4">
+            <div class="live-pitch" id="live-pitch">
+              <div class="live-line" style="inset:2%;border-radius:8px"></div><div class="live-line" style="left:2%;right:2%;top:50%;height:0"></div><div class="live-line" style="width:120px;height:120px;border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%)"></div><div class="live-line" style="left:25%;right:25%;top:2%;height:15%"></div><div class="live-line" style="left:25%;right:25%;bottom:2%;height:15%"></div>
+              <div class="live-ball"></div><div id="live-pitch-players"></div>
+              <div class="absolute bottom-2 left-2 text-[9px] bg-black/50 rounded px-2 py-1">מבט טקטי · הדמיית משחק</div>
+            </div>
+            <div class="glass-panel rounded-2xl p-4">
+              <div class="flex justify-between text-xs mb-2"><span>החזקת כדור</span><span id="live-possession">50% - 50%</span></div><div class="h-2 rounded-full bg-slate-800 overflow-hidden flex"><div id="live-possession-bar" class="bg-ea-green h-full" style="width:50%"></div><div class="bg-white h-full flex-1"></div></div>
+              <div class="grid grid-cols-3 gap-2 mt-4 text-center"><div class="bg-black/20 rounded-xl p-3"><div id="live-shots" class="text-xl font-black">0 - 0</div><div class="text-[10px] text-slate-400">בעיטות</div></div><div class="bg-black/20 rounded-xl p-3"><div id="live-on-target" class="text-xl font-black">0 - 0</div><div class="text-[10px] text-slate-400">למסגרת</div></div><div class="bg-black/20 rounded-xl p-3"><div id="live-corners" class="text-xl font-black">0 - 0</div><div class="text-[10px] text-slate-400">קרנות</div></div></div>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="glass-panel rounded-2xl p-4"><div class="flex justify-between items-center mb-3"><h3 class="font-black">📺 מהלך המשחק</h3><span class="text-[10px] text-red-400 animate-pulse">● LIVE</span></div><div id="live-commentary" class="space-y-2 max-h-[270px] overflow-y-auto text-xs"><div class="text-slate-400">השופט בודק את השעון...</div></div></div>
+            <div class="glass-panel rounded-2xl p-4"><h3 class="font-black mb-2">🔁 חילופים תוך כדי משחק</h3><p class="text-[10px] text-slate-400 mb-3">בחר שחקן בהרכב שעל המגרש ואז שחקן ספסל. עד 5 חילופים.</p><div id="live-sub-list" class="space-y-2 max-h-[310px] overflow-y-auto"></div><div id="live-sub-hint" class="text-[10px] text-yellow-300 mt-3">בחר שחקן על המגרש כדי להכין חילוף.</div></div>
+          </div>
+        </div>
+        <div class="flex flex-wrap justify-between items-center gap-3 mt-4 mb-6"><div id="live-bottom-status" class="text-xs text-slate-400">המשחק יסתיים אוטומטית בדקה 90+</div><button id="live-finish-btn" onclick="finishLiveMatch()" class="px-6 py-3 rounded-xl bg-ea-green text-slate-950 font-black" disabled>סיום משחק</button></div>
+      </div>
+    </div>
+
+    <!-- מודל מסיבת עיתונאים -->
+    <div id="press-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel p-6 md:p-8 rounded-2xl max-w-lg w-full border border-ea-green glow-green space-y-4">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-microphone-alt text-3xl text-ea-green"></i>
+                <h3 class="text-xl font-black text-white">מסיבת עיתונאים לאחר המשחק</h3>
+            </div>
+            <p id="press-question" class="text-sm text-slate-300 font-medium bg-slate-900/80 p-4 rounded-xl border border-slate-800"></p>
+            <div id="press-options" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- מודל משא ומתן שחקן -->
+    <div id="negotiation-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel p-6 rounded-2xl max-w-md w-full border border-yellow-400 space-y-4">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fas fa-handshake text-yellow-400"></i> משא ומתן על שחקן
+            </h3>
+            <div id="neg-content" class="text-xs text-slate-300 space-y-2 bg-slate-900 p-3 rounded-xl border border-slate-800"></div>
+            <div class="grid grid-cols-2 gap-3">
+                <label class="text-xs text-slate-300">דמי העברה מוצעים (€)
+                    <input id="neg-fee-input" type="number" min="0" step="50000" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
+                </label>
+                <label class="text-xs text-slate-300">שכר שבועי מוצע (€)
+                    <input id="neg-wage-input" type="number" min="0" step="500" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
+                </label>
+            </div>
+            <div id="neg-feedback" class="text-xs text-yellow-200 bg-slate-950 p-3 rounded-xl hidden"></div>
+            <div class="flex gap-2">
+                <button id="neg-accept-btn" class="flex-1 py-2.5 bg-ea-green text-slate-950 font-bold rounded-xl text-xs hover:opacity-95">שלח הצעה</button>
+                <button id="neg-counter-btn" class="hidden flex-1 py-2.5 bg-yellow-500 text-slate-950 font-bold rounded-xl text-xs hover:opacity-95">קבל הצעה נגדית</button>
+                <button onclick="closeNegotiation()" class="py-2.5 px-4 bg-slate-800 text-slate-300 font-bold rounded-xl text-xs hover:bg-slate-700">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- מודל סיום עונה -->
+    <div id="season-over-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel p-8 rounded-2xl max-w-lg w-full text-center border border-ea-green glow-green">
+            <i class="fas fa-trophy text-6xl text-yellow-400 mb-4 animate-bounce"></i>
+            <h2 class="text-3xl font-black text-white mb-2">העונה הסתיימה!</h2>
+            <p id="champion-announcement" class="text-lg text-ea-green font-bold mb-2"></p>
+            <p id="board-review" class="text-xs text-yellow-400 font-bold mb-6 bg-slate-900 p-3 rounded-xl border border-slate-800"></p>
+            <button onclick="resetForNextSeason()" class="w-full py-3 bg-ea-green text-slate-950 font-black rounded-xl hover:opacity-95 transition">
+                התחל עונה חדשה <i class="fas fa-redo ml-1"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="trophy-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel p-8 rounded-3xl max-w-xl w-full text-center border border-yellow-400 space-y-4">
+            <div class="text-7xl">🏆</div><h2 class="text-3xl font-black text-yellow-300">אלופים!</h2>
+            <p id="trophy-message" class="text-white font-bold text-lg"></p>
+            <p class="text-slate-300 text-sm">הקהל חוגג, הקפטנים מניפים את הצלחת וזיקוקים מאירים את האצטדיון!</p>
+            <button onclick="document.getElementById('trophy-modal').classList.add('hidden')" class="w-full py-3 bg-yellow-400 text-slate-950 font-black rounded-xl">חגיגה ממשיכים</button>
+        </div>
+    </div>
+
+    <script>
+        const TEAMS_DATABASE = {
+            "Maccabi Netanya": {
+                name: "מכבי נתניה",
+                badge: "https://placehold.co/100x100/facc15/000000?text=MNT",
+                budget: 8000000,
+                rating: 76,
+                roster: [
+                    { id: "mnt_1", name: "ניב אנטמן", pos: "GK", overall: 72, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "mnt_2", name: "סאמו", pos: "GK", overall: 70, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "mnt_3", name: "דניאל כהן", pos: "GK", overall: 68, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "mnt_4", name: "אוליבייה ורדון", pos: "DEF", overall: 75, val: 1200000, fatigue: 0, injured: 0 },
+                    { id: "mnt_5", name: "גריגורי מורוזוב", pos: "DEF", overall: 73, val: 900000, fatigue: 0, injured: 0 },
+                    { id: "mnt_6", name: "איתי בן שבת", pos: "DEF", overall: 71, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "mnt_7", name: "דניס קוליקוב", pos: "DEF", overall: 70, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "mnt_8", name: "בקארי קונאטה", pos: "DEF", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "mnt_9", name: "אלון אזוגי", pos: "DEF", overall: 71, val: 700000, fatigue: 0, injured: 0 },
+                    { id: "mnt_10", name: "עמית כהן", pos: "DEF", overall: 71, val: 700000, fatigue: 0, injured: 0 },
+                    { id: "mnt_11", name: "קארם ג'אבר", pos: "DEF", overall: 74, val: 1100000, fatigue: 0, injured: 0 },
+                    { id: "mnt_12", name: "סאבא קוודאגיאני", pos: "DEF", overall: 69, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "mnt_13", name: "בני פלדמן", pos: "DEF", overall: 68, val: 450000, fatigue: 0, injured: 0 },
+                    { id: "mnt_14", name: "גבריאל סימיון", pos: "MID", overall: 74, val: 1100000, fatigue: 0, injured: 0 },
+                    { id: "mnt_15", name: "עוז בילו", pos: "MID", overall: 72, val: 900000, fatigue: 0, injured: 0 },
+                    { id: "mnt_16", name: "נדב נידם", pos: "MID", overall: 72, val: 850000, fatigue: 0, injured: 0 },
+                    { id: "mnt_17", name: "ליאם כהן", pos: "MID", overall: 69, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "mnt_18", name: "מאור לוי", pos: "MID", overall: 75, val: 1400000, fatigue: 0, injured: 0 },
+                    { id: "mnt_19", name: "בסאם זערורה", pos: "MID", overall: 71, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "mnt_20", name: "עמרי שמיר", pos: "MID", overall: 70, val: 600000, fatigue: 0, injured: 0 },
+                    { id: "mnt_21", name: "אלכסיי טלפה", pos: "MID", overall: 70, val: 600000, fatigue: 0, injured: 0 },
+                    { id: "mnt_22", name: "ווילן סיפריאן", pos: "MID", overall: 74, val: 1200000, fatigue: 0, injured: 0 },
+                    { id: "mnt_23", name: "איתי שוורצמן", pos: "MID", overall: 68, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "mnt_24", name: "עזיז אווטארה", pos: "MID", overall: 73, val: 1000000, fatigue: 0, injured: 0 },
+                    { id: "mnt_25", name: "אילון אלמוג", pos: "FWD", overall: 74, val: 1300000, fatigue: 0, injured: 0 },
+                    { id: "mnt_26", name: "איסאק", pos: "FWD", overall: 71, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "mnt_27", name: "דולב חזיזה", pos: "FWD", overall: 77, val: 2200000, fatigue: 0, injured: 0 },
+                    { id: "mnt_28", name: "דור חוגי", pos: "FWD", overall: 73, val: 950000, fatigue: 0, injured: 0 },
+                    { id: "mnt_29", name: "ירין אבוחצירה", pos: "FWD", overall: 68, val: 450000, fatigue: 0, injured: 0 },
+                    { id: "mnt_30", name: "מתאוס דאבו", pos: "FWD", overall: 73, val: 1000000, fatigue: 0, injured: 0 }
+                ]
+            },
+            "Maccabi Tel Aviv": {
+                name: "מכבי תל אביב",
+                badge: "https://placehold.co/100x100/1e3a8a/ffffff?text=MTA",
+                budget: 15000000,
+                rating: 81,
+                roster: [
+                    { id: "mta_1", name: "אופק מליקה", pos: "GK", overall: 71, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "mta_2", name: "רועי משפתי", pos: "GK", overall: 75, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "mta_3", name: "איתי מלמה", pos: "DEF", overall: 72, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "mta_4", name: "ג'יימס טאברנייר", pos: "DEF", overall: 78, val: 2500000, fatigue: 0, injured: 0 },
+                    { id: "mta_5", name: "מוחמד עלי קאמארה", pos: "DEF", overall: 76, val: 1800000, fatigue: 0, injured: 0 },
+                    { id: "mta_6", name: "טייריס אסאנטה", pos: "DEF", overall: 74, val: 1200000, fatigue: 0, injured: 0 },
+                    { id: "mta_7", name: "רז שלמה", pos: "DEF", overall: 73, val: 900000, fatigue: 0, injured: 0 },
+                    { id: "mta_8", name: "דני גרופר", pos: "DEF", overall: 72, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "mta_9", name: "נועם בן הרוש", pos: "DEF", overall: 70, val: 600000, fatigue: 0, injured: 0 },
+                    { id: "mta_10", name: "שחר רוזן", pos: "DEF", overall: 71, val: 700000, fatigue: 0, injured: 0 },
+                    { id: "mta_11", name: "איתי בן חמו", pos: "DEF", overall: 69, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "mta_12", name: "שגיב יחזקאל", pos: "MID", overall: 77, val: 2200000, fatigue: 0, injured: 0 },
+                    { id: "mta_13", name: "גבי קניקובסקי", pos: "MID", overall: 78, val: 2800000, fatigue: 0, injured: 0 },
+                    { id: "mta_14", name: "כריסטיאן בליץ'", pos: "MID", overall: 75, val: 1600000, fatigue: 0, injured: 0 },
+                    { id: "mta_15", name: "דן גלזר", pos: "MID", overall: 75, val: 1500000, fatigue: 0, injured: 0 },
+                    { id: "mta_16", name: "יוסוף סיסוקו", pos: "MID", overall: 74, val: 1300000, fatigue: 0, injured: 0 },
+                    { id: "mta_17", name: "איתמר נוי", pos: "MID", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "mta_18", name: "עידו שחר", pos: "MID", overall: 73, val: 950000, fatigue: 0, injured: 0 },
+                    { id: "mta_19", name: "דור פרץ", pos: "MID", overall: 79, val: 3200000, fatigue: 0, injured: 0 },
+                    { id: "mta_20", name: "אסטר סוקלר", pos: "FWD", overall: 74, val: 1300000, fatigue: 0, injured: 0 },
+                    { id: "mta_21", name: "אלעד מדמון", pos: "FWD", overall: 73, val: 1100000, fatigue: 0, injured: 0 },
+                    { id: "mta_22", name: "הליו וארלה", pos: "FWD", overall: 75, val: 1600000, fatigue: 0, injured: 0 },
+                    { id: "mta_23", name: "הישאם לאיוס", pos: "FWD", overall: 74, val: 1400000, fatigue: 0, injured: 0 },
+                    { id: "mta_24", name: "עילאי בן סימון", pos: "FWD", overall: 68, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "mta_25", name: "אושר דוידה", pos: "FWD", overall: 76, val: 2100000, fatigue: 0, injured: 0 },
+                    { id: "mta_26", name: "יון ניקולסקו", pos: "FWD", overall: 77, val: 2400000, fatigue: 0, injured: 0 }
+                ]
+            },
+            "Maccabi Haifa": {
+                name: "מכבי חיפה",
+                badge: "https://placehold.co/100x100/15803d/ffffff?text=MAC",
+                budget: 13000000,
+                rating: 80,
+                roster: [
+                    { id: "mh_1", name: "עומר ניראון", pos: "GK", overall: 71, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "mh_2", name: "שריף כיוף", pos: "GK", overall: 74, val: 900000, fatigue: 0, injured: 0 },
+                    { id: "mh_3", name: "עומרי גלזר", pos: "GK", overall: 76, val: 1500000, fatigue: 0, injured: 0 },
+                    { id: "mh_4", name: "גלן אלווין", pos: "GK", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "mh_5", name: "זוהר זסנו", pos: "DEF", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "mh_6", name: "שון גולדברג", pos: "DEF", overall: 76, val: 1600000, fatigue: 0, injured: 0 },
+                    { id: "mh_7", name: "ינון פיינגזיכט", pos: "DEF", overall: 69, val: 450000, fatigue: 0, injured: 0 },
+                    { id: "mh_8", name: "נייג'ל לונווייק", pos: "DEF", overall: 74, val: 1200000, fatigue: 0, injured: 0 },
+                    { id: "mh_9", name: "ז'ל באטאי", pos: "DEF", overall: 73, val: 950000, fatigue: 0, injured: 0 },
+                    { id: "mh_10", name: "פייר קורנו", pos: "DEF", overall: 77, val: 2000000, fatigue: 0, injured: 0 },
+                    { id: "mh_11", name: "נועם שטיינפמן", pos: "DEF", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "mh_12", name: "אלעד אמיר", pos: "DEF", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "mh_13", name: "ארד גייסט", pos: "DEF", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "mh_14", name: "פדרו", pos: "DEF", overall: 75, val: 1400000, fatigue: 0, injured: 0 },
+                    { id: "mh_15", name: "צונאמי", pos: "DEF", overall: 70, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "mh_16", name: "עלי מוחמד", pos: "MID", overall: 78, val: 2600000, fatigue: 0, injured: 0 },
+                    { id: "mh_17", name: "יאיר מרדכי", pos: "MID", overall: 69, val: 450000, fatigue: 0, injured: 0 },
+                    { id: "mh_18", name: "ירין לוי", pos: "MID", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "mh_19", name: "ברוניניו", pos: "MID", overall: 74, val: 1250000, fatigue: 0, injured: 0 },
+                    { id: "mh_20", name: "קני סייף", pos: "MID", overall: 73, val: 900000, fatigue: 0, injured: 0 },
+                    { id: "mh_21", name: "איתן אזולאי", pos: "MID", overall: 75, val: 1500000, fatigue: 0, injured: 0 },
+                    { id: "mh_22", name: "פדרו בראזאו", pos: "MID", overall: 74, val: 1300000, fatigue: 0, injured: 0 },
+                    { id: "mh_23", name: "עמית ארזי", pos: "MID", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "mh_24", name: "נבות רטנר", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "mh_25", name: "דון סדריק", pos: "MID", overall: 73, val: 950000, fatigue: 0, injured: 0 },
+                    { id: "mh_26", name: "ג'אד שיבלי", pos: "FWD", overall: 70, val: 600000, fatigue: 0, injured: 0 },
+                    { id: "mh_27", name: "ליאם לוסקי", pos: "FWD", overall: 68, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "mh_28", name: "אנדרייה נובאקוביץ'", pos: "FWD", overall: 75, val: 1700000, fatigue: 0, injured: 0 },
+                    { id: "mh_29", name: "קנג'י גורה", pos: "FWD", overall: 74, val: 1300000, fatigue: 0, injured: 0 },
+                    { id: "mh_30", name: "גיא מלמד", pos: "FWD", overall: 77, val: 2100000, fatigue: 0, injured: 0 },
+                    { id: "mh_31", name: "סילבה קאני", pos: "FWD", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "mh_32", name: "איאד חלאילי", pos: "FWD", overall: 71, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "mh_33", name: "אדם גרימברג", pos: "FWD", overall: 67, val: 300000, fatigue: 0, injured: 0 }
+                ]
+            },
+            "Hapoel Beer Sheva": {
+                name: "הפועל באר שבע",
+                badge: "https://placehold.co/100x100/b91c1c/ffffff?text=HBS",
+                budget: 11000000,
+                rating: 79,
+                roster: [
+                    { id: "hbs_1", name: "אופיר מרציאנו", pos: "GK", overall: 73, val: 600000, fatigue: 0, injured: 0 },
+                    { id: "hbs_2", name: "מרקו וולף", pos: "GK", overall: 72, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "hbs_3", name: "נועם שחר", pos: "DEF", overall: 70, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "hbs_4", name: "גיא מזרחי", pos: "DEF", overall: 73, val: 850000, fatigue: 0, injured: 0 },
+                    { id: "hbs_5", name: "מתן בלטקסה", pos: "DEF", overall: 74, val: 950000, fatigue: 0, injured: 0 },
+                    { id: "hbs_6", name: "מיגל ויטור", pos: "DEF", overall: 77, val: 1200000, fatigue: 0, injured: 0 },
+                    { id: "hbs_7", name: "פדרו אמאדור", pos: "DEF", overall: 75, val: 1300000, fatigue: 0, injured: 0 },
+                    { id: "hbs_8", name: "איתי רוטמן", pos: "DEF", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "hbs_9", name: "אופיר דוידזאדה", pos: "DEF", overall: 73, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "hbs_10", name: "עידן נחמיאס", pos: "DEF", overall: 72, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "hbs_11", name: "ג'יבריל דיופ", pos: "DEF", overall: 74, val: 1100000, fatigue: 0, injured: 0 },
+                    { id: "hbs_12", name: "אליאל פרץ", pos: "MID", overall: 75, val: 1500000, fatigue: 0, injured: 0 },
+                    { id: "hbs_13", name: "דן ביטון", pos: "MID", overall: 78, val: 2500000, fatigue: 0, injured: 0 },
+                    { id: "hbs_14", name: "פורסון אמנקווה", pos: "MID", overall: 74, val: 1200000, fatigue: 0, injured: 0 },
+                    { id: "hbs_15", name: "לוקאס ונטורה", pos: "MID", overall: 76, val: 1800000, fatigue: 0, injured: 0 },
+                    { id: "hbs_16", name: "יוני סטויאנוב", pos: "MID", overall: 73, val: 900000, fatigue: 0, injured: 0 },
+                    { id: "hbs_17", name: "ניב יהושע", pos: "MID", overall: 71, val: 700000, fatigue: 0, injured: 0 },
+                    { id: "hbs_18", name: "חמודי כנעאן", pos: "FWD", overall: 76, val: 2000000, fatigue: 0, injured: 0 },
+                    { id: "hbs_19", name: "זאהי אחמד", pos: "FWD", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "hbs_20", name: "אמיר גנאח", pos: "FWD", overall: 73, val: 950000, fatigue: 0, injured: 0 },
+                    { id: "hbs_21", name: "יונס מלדה", pos: "FWD", overall: 74, val: 1200000, fatigue: 0, injured: 0 },
+                    { id: "hbs_22", name: "ג'בון איסט", pos: "FWD", overall: 75, val: 1600000, fatigue: 0, injured: 0 },
+                    { id: "hbs_23", name: "מוחמד אבו רומי", pos: "FWD", overall: 70, val: 600000, fatigue: 0, injured: 0 },
+                    { id: "hbs_24", name: "איגור זלטאנוביץ'", pos: "FWD", overall: 75, val: 1500000, fatigue: 0, injured: 0 },
+                    { id: "hbs_25", name: "ז'ואאו ויקטור", pos: "FWD", overall: 73, val: 1000000, fatigue: 0, injured: 0 },
+                    { id: "hbs_26", name: "עמית אוחנה", pos: "FWD", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "hbs_27", name: "אדריאן אוגריסה", pos: "FWD", overall: 72, val: 850000, fatigue: 0, injured: 0 }
+                ]
+            },
+            "Hapoel Tel Aviv": {
+                name: "הפועל תל אביב",
+                badge: "https://placehold.co/100x100/991b1b/ffffff?text=HTA",
+                budget: 8000000,
+                rating: 75,
+                roster: [
+                    { id: "hta_1", name: "דור בנימיני", pos: "GK", overall: 69, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "hta_2", name: "אסף צור", pos: "GK", overall: 72, val: 600000, fatigue: 0, injured: 0 },
+                    { id: "hta_3", name: "צ'יקו", pos: "DEF", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "hta_4", name: "פרננד מאיימבו", pos: "DEF", overall: 73, val: 850000, fatigue: 0, injured: 0 },
+                    { id: "hta_5", name: "דורון ליידנר", pos: "DEF", overall: 74, val: 1100000, fatigue: 0, injured: 0 },
+                    { id: "hta_6", name: "טל ארצ'ל", pos: "DEF", overall: 70, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "hta_7", name: "שחר פיבן", pos: "DEF", overall: 72, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "hta_8", name: "יאניק ללינדאל", pos: "DEF", overall: 71, val: 700000, fatigue: 0, injured: 0 },
+                    { id: "hta_9", name: "מרקוס קוקו", pos: "DEF", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "hta_10", name: "אנדריאן קרייב", pos: "MID", overall: 75, val: 1400000, fatigue: 0, injured: 0 },
+                    { id: "hta_11", name: "יונתן פרבר", pos: "MID", overall: 68, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "hta_12", name: "אל ים קנצפולסקי", pos: "MID", overall: 73, val: 900000, fatigue: 0, injured: 0 },
+                    { id: "hta_13", name: "רוי אלקוקין", pos: "MID", overall: 70, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "hta_14", name: "איתי שביט", pos: "MID", overall: 68, val: 380000, fatigue: 0, injured: 0 },
+                    { id: "hta_15", name: "עמית למקין", pos: "MID", overall: 70, val: 600000, fatigue: 0, injured: 0 },
+                    { id: "hta_16", name: "לוקאס פלקאו", pos: "MID", overall: 74, val: 1200000, fatigue: 0, injured: 0 },
+                    { id: "hta_17", name: "סאמי אדם", pos: "FWD", overall: 68, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "hta_18", name: "רוי קורין", pos: "FWD", overall: 72, val: 850000, fatigue: 0, injured: 0 },
+                    { id: "hta_19", name: "עמנואל בואטנג", pos: "FWD", overall: 73, val: 950000, fatigue: 0, injured: 0 },
+                    { id: "hta_20", name: "סתיו טוריאל", pos: "FWD", overall: 73, val: 950000, fatigue: 0, injured: 0 },
+                    { id: "hta_21", name: "אנאס מחמיד", pos: "FWD", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "hta_22", name: "מור בוסקילה", pos: "FWD", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "hta_23", name: "דוגלאס אווסו", pos: "FWD", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "hta_24", name: "דניאל דאפה", pos: "FWD", overall: 68, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "hta_25", name: "עומרי אלטמן", pos: "FWD", overall: 75, val: 1300000, fatigue: 0, injured: 0 }
+                ]
+            },
+            "Hapoel Haifa": {
+                name: "הפועל חיפה",
+                badge: "https://placehold.co/100x100/dc2626/ffffff?text=HHF",
+                budget: 6500000,
+                rating: 74,
+                roster: [
+                    { id: "hh_1", name: "יואב ג'ראפי", pos: "GK", overall: 75, val: 1100000, fatigue: 0, injured: 0 },
+                    { id: "hh_2", name: "מתן עמבר", pos: "GK", overall: 69, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "hh_3", name: "אורי לוי", pos: "GK", overall: 66, val: 250000, fatigue: 0, injured: 0 },
+                    { id: "hh_4", name: "נועם כהן", pos: "DEF", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "hh_5", name: "תמיר ארבל", pos: "DEF", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "hh_6", name: "דור מלול", pos: "DEF", overall: 72, val: 700000, fatigue: 0, injured: 0 },
+                    { id: "hh_7", name: "איוון קריצ'אק", pos: "DEF", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "hh_8", name: "דריו ז'ופאריץ'", pos: "DEF", overall: 73, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "hh_9", name: "ג'ורג' דיבה", pos: "DEF", overall: 71, val: 600000, fatigue: 0, injured: 0 },
+                    { id: "hh_10", name: "אריאל מנדי", pos: "DEF", overall: 69, val: 450000, fatigue: 0, injured: 0 },
+                    { id: "hh_11", name: "לירן רוטמן", pos: "MID", overall: 73, val: 900000, fatigue: 0, injured: 0 },
+                    { id: "hh_12", name: "שייק קייטה", pos: "MID", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "hh_13", name: "שי אליאס", pos: "MID", overall: 74, val: 1100000, fatigue: 0, injured: 0 },
+                    { id: "hh_14", name: "ישראל פחימה", pos: "MID", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "hh_15", name: "יעד גונן", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "hh_16", name: "סער אלקיים", pos: "MID", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "hh_17", name: "עילאי חזן", pos: "MID", overall: 69, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "hh_18", name: "עידן דדיה", pos: "MID", overall: 70, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "hh_19", name: "ליאם נחום", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "hh_20", name: "טל נעים", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "hh_21", name: "נאור סבג", pos: "MID", overall: 73, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "hh_22", name: "ג'יידן בראף", pos: "FWD", overall: 73, val: 950000, fatigue: 0, injured: 0 },
+                    { id: "hh_23", name: "אניס פורת עיאש", pos: "FWD", overall: 70, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "hh_24", name: "ויליאם אגאדה", pos: "FWD", overall: 74, val: 1200000, fatigue: 0, injured: 0 },
+                    { id: "hh_25", name: "והיב חביבאללה", pos: "FWD", overall: 69, val: 450000, fatigue: 0, injured: 0 },
+                    { id: "hh_26", name: "אלון תורג'מן", pos: "FWD", overall: 74, val: 1000000, fatigue: 0, injured: 0 },
+                    { id: "hh_27", name: "איתי זפרני", pos: "FWD", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "hh_28", name: "אחמד המאם", pos: "FWD", overall: 66, val: 280000, fatigue: 0, injured: 0 },
+                    { id: "hh_29", name: "שיקאנה דיאקיטה", pos: "FWD", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "hh_30", name: "מועתז חמד", pos: "FWD", overall: 67, val: 300000, fatigue: 0, injured: 0 }
+                ]
+            },
+            "Bnei Sakhnin": {
+                name: "בני סכנין",
+                badge: "https://placehold.co/100x100/16a34a/ffffff?text=SAK",
+                budget: 4500000,
+                rating: 72,
+                roster: [
+                    { id: "sak_1", name: "ראול בלבראו", pos: "GK", overall: 69, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "sak_2", name: "מוחמד אבו ניל", pos: "GK", overall: 71, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "sak_3", name: "מג'ד סולימאן", pos: "GK", overall: 66, val: 250000, fatigue: 0, injured: 0 },
+                    { id: "sak_4", name: "לירוי אווסו", pos: "DEF", overall: 72, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "sak_5", name: "מארון גנטוס", pos: "DEF", overall: 71, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "sak_6", name: "אורי דהן", pos: "DEF", overall: 72, val: 700000, fatigue: 0, injured: 0 },
+                    { id: "sak_7", name: "איאד אבו עביד", pos: "DEF", overall: 73, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "sak_8", name: "עמית קרדי", pos: "DEF", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "sak_9", name: "מוחמד גנאמה", pos: "DEF", overall: 69, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "sak_10", name: "עמאד אלדין עבדאללה", pos: "DEF", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "sak_11", name: "סנה גומס", pos: "DEF", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "sak_12", name: "דמיטרי קווארה", pos: "DEF", overall: 70, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "sak_13", name: "סאהר תאג'י", pos: "MID", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "sak_14", name: "אחמד טאהא", pos: "MID", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "sak_15", name: "מודסטאס וורוביובאס", pos: "MID", overall: 73, val: 900000, fatigue: 0, injured: 0 },
+                    { id: "sak_16", name: "מתאו קודג'ו", pos: "MID", overall: 70, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "sak_17", name: "ג'בייר בושנאק", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "sak_18", name: "לואי חלף", pos: "MID", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "sak_19", name: "שאקר אבו חוסיין", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "sak_20", name: "נורברטו קרלוס", pos: "MID", overall: 72, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "sak_21", name: "מוחמד אבו ריא", pos: "MID", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "sak_22", name: "בסיל חורי", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "sak_23", name: "עילאי חג'ג'", pos: "MID", overall: 70, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "sak_24", name: "אכרם זובידאת", pos: "MID", overall: 66, val: 280000, fatigue: 0, injured: 0 },
+                    { id: "sak_25", name: "עלי גנאמה", pos: "MID", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "sak_26", name: "ביאן אבו ריא", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "sak_27", name: "איתמר שבירו", pos: "FWD", overall: 74, val: 1200000, fatigue: 0, injured: 0 },
+                    { id: "sak_28", name: "דניאל פרסקיב", pos: "FWD", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "sak_29", name: "אחמד סלמן", pos: "FWD", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "sak_30", name: "סובחי אבו יונס", pos: "FWD", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "sak_31", name: "אנטוניו ספר", pos: "FWD", overall: 73, val: 950000, fatigue: 0, injured: 0 }
+                ]
+            },
+            "Ironi Tiberias": {
+                name: "עירוני טבריה",
+                badge: "https://placehold.co/100x100/3b82f6/ffffff?text=TIB",
+                budget: 4000000,
+                rating: 70,
+                roster: [
+                    { id: "tib_1", name: "גד עמוס", pos: "GK", overall: 72, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "tib_2", name: "עידו שרון", pos: "GK", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "tib_3", name: "ג'ונס אבו גנימה", pos: "GK", overall: 66, val: 250000, fatigue: 0, injured: 0 },
+                    { id: "tib_4", name: "מאמאדו סמבה קאנדה", pos: "DEF", overall: 70, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "tib_5", name: "נהוראי חן", pos: "DEF", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "tib_6", name: "זיו מורגן", pos: "DEF", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "tib_7", name: "גיא סנקר", pos: "DEF", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "tib_8", name: "רון אונגר", pos: "DEF", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "tib_9", name: "גל מעתוק", pos: "DEF", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "tib_10", name: "רן חילווה", pos: "DEF", overall: 66, val: 280000, fatigue: 0, injured: 0 },
+                    { id: "tib_11", name: "יהונתן חסון", pos: "DEF", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "tib_12", name: "אונדז'יי באצ'ו", pos: "DEF", overall: 72, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "tib_13", name: "דוד קלטינס", pos: "MID", overall: 73, val: 850000, fatigue: 0, injured: 0 },
+                    { id: "tib_14", name: "ארי כהן", pos: "MID", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "tib_15", name: "בר כהן", pos: "MID", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "tib_16", name: "ניב גוטליב", pos: "MID", overall: 69, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "tib_17", name: "בר נאווי", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "tib_18", name: "ירין סרדל", pos: "MID", overall: 70, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "tib_19", name: "כריס קואקו", pos: "MID", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "tib_20", name: "רועי שחר", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "tib_21", name: "רביד שמאי", pos: "MID", overall: 66, val: 280000, fatigue: 0, injured: 0 },
+                    { id: "tib_22", name: "ירין סוויסה", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "tib_23", name: "עדן שמיר", pos: "MID", overall: 74, val: 1100000, fatigue: 0, injured: 0 },
+                    { id: "tib_24", name: "סמיר פרהוד", pos: "FWD", overall: 70, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "tib_25", name: "קייס גאנם", pos: "FWD", overall: 73, val: 900000, fatigue: 0, injured: 0 },
+                    { id: "tib_26", name: "מנסור באדג'י", pos: "FWD", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "tib_27", name: "דניאל גולני", pos: "FWD", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "tib_28", name: "אגם יהודה", pos: "FWD", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "tib_29", name: "ננה גמבלה", pos: "FWD", overall: 72, val: 800000, fatigue: 0, injured: 0 },
+                    { id: "tib_30", name: "ארטור מירניאן", pos: "FWD", overall: 69, val: 400000, fatigue: 0, injured: 0 }
+                ]
+            },
+            "Maccabi Petah Tikva": {
+                name: "מכבי פתח תקווה",
+                badge: "https://placehold.co/100x100/0284c7/ffffff?text=MPT",
+                budget: 4500000,
+                rating: 71,
+                roster: [
+                    { id: "mpt_1", name: "עילאי טובים", pos: "GK", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "mpt_2", name: "דור חברון", pos: "GK", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "mpt_3", name: "מאור ארליך", pos: "GK", overall: 66, val: 250000, fatigue: 0, injured: 0 },
+                    { id: "mpt_4", name: "אלוז' יאו", pos: "DEF", overall: 72, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "mpt_5", name: "איתי ברוך", pos: "DEF", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "mpt_6", name: "אביב סלם", pos: "DEF", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "mpt_7", name: "איתן טיבי", pos: "DEF", overall: 73, val: 600000, fatigue: 0, injured: 0 },
+                    { id: "mpt_8", name: "עידו כהן", pos: "DEF", overall: 69, val: 400000, fatigue: 0, injured: 0 },
+                    { id: "mpt_9", name: "בשאר אבדאח", pos: "DEF", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "mpt_10", name: "גיא דזנט", pos: "DEF", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "mpt_11", name: "אור דדיה", pos: "DEF", overall: 72, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "mpt_12", name: "פאבלוס קוראה", pos: "DEF", overall: 70, val: 500000, fatigue: 0, injured: 0 },
+                    { id: "mpt_13", name: "ליאור קאסה", pos: "MID", overall: 72, val: 850000, fatigue: 0, injured: 0 },
+                    { id: "mpt_14", name: "לי-ים דן", pos: "MID", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "mpt_15", name: "אדר רטנר", pos: "MID", overall: 67, val: 300000, fatigue: 0, injured: 0 },
+                    { id: "mpt_16", name: "איברהימה סומה", pos: "MID", overall: 73, val: 900000, fatigue: 0, injured: 0 },
+                    { id: "mpt_17", name: "לירן חזן", pos: "MID", overall: 71, val: 650000, fatigue: 0, injured: 0 },
+                    { id: "mpt_18", name: "יהונתן עוז", pos: "MID", overall: 66, val: 280000, fatigue: 0, injured: 0 },
+                    { id: "mpt_19", name: "אייל אינברום", pos: "MID", overall: 72, val: 750000, fatigue: 0, injured: 0 },
+                    { id: "mpt_20", name: "קייל ספנס", pos: "FWD", overall: 71, val: 700000, fatigue: 0, injured: 0 },
+                    { id: "mpt_21", name: "סמואל אווסו", pos: "FWD", overall: 74, val: 1200000, fatigue: 0, injured: 0 },
+                    { id: "mpt_22", name: "אריאל לוגסי", pos: "FWD", overall: 70, val: 550000, fatigue: 0, injured: 0 },
+                    { id: "mpt_23", name: "יואב קורן", pos: "FWD", overall: 68, val: 350000, fatigue: 0, injured: 0 },
+                    { id: "mpt_24", name: "חוסה קורטס", pos: "FWD", overall: 73, val: 950000, fatigue: 0, injured: 0 },
+                    { id: "mpt_25", name: "מרקו רקוניאץ'", pos: "FWD", overall: 74, val: 1300000, fatigue: 0, injured: 0 }
+                ]
+            }
+
+            ,
+            "Hapoel Jerusalem": {
+                name: "הפועל ירושלים", badge: "https://placehold.co/100x100/991b1b/ffffff?text=HJM", budget: 4200000, rating: 71,
+                roster: [
+                    ["נועם שביט","GK",67],["בן גורדין","GK",66],["גיא בר","GK",68],["נדב זמיר","GK",67],["עילאי טובים","GK",65],
+                    ["זוברו שרני","DEF",69],["נועם מלמוד","DEF",72],["יונתן לייש","DEF",68],["עומר אגבדיש","DEF",70],["ליאון מזרחי","DEF",69],["אופק נדיר","DEF",68],["הילאי מלמן","DEF",66],["תמיר הימוביץ'","DEF",67],["עידן כהן","DEF",68],
+                    ["רז יחזקאל","MID",69],["איינאו פרדה","MID",72],["עיליי מדמון","MID",71],["ינאי דיסטלפלד","MID",67],["עומר אבוהב","MID",66],["נדים וראסנה","MID",68],["חמזה מוחמד","MID",70],["נתנאל שפראו","MID",66],["אוקון ריימונד","MID",69],["כריסט טיהי","MID",70],
+                    ["אוהד אלמגור","FWD",71],["ויטלי דמשקאן","FWD",74],["סאני עבדולסלאם","FWD",68],["אנדרו אידוקו","FWD",72],["מוחמד דיאב","FWD",68],["ישראל דאפה","FWD",69]
+                ].map((x,i)=>({id:"hjm_"+i,name:x[0],pos:x[1],overall:x[2],val:x[2]*18000,fatigue:0,injured:0}))
+            },
+            "Hapoel Ramat Gan": {
+                name: "הפועל רמת גן", badge: "https://placehold.co/100x100/991b1b/ffffff?text=HRG", budget: 3500000, rating: 69,
+                roster: [
+                    ["אריק ינקו","GK",70],["בן פרדוארו","GK",66],["עמית רייף","GK",65],["תומר הרן","GK",64],
+                    ["גטאצ'או יבלו","DEF",68],["דניאל טישלר","DEF",68],["מרסיו סילבה","DEF",70],["ג'וטה גונסלבס","DEF",69],["נועם שוורץ","DEF",66],["עמית צור","DEF",65],["עומר יצחק","DEF",67],["פרד איברהים","DEF",68],["דודי טוויטו","DEF",69],["אריק מנש","DEF",66],
+                    ["גוני נאור","MID",72],["מקסים פלקושצ'נקו","MID",73],["משה סמל","MID",66],["אולי כהן ברגמן","MID",67],["כריסטופר בוניפאסה","MID",69],["עידו עולי","MID",67],["תמיר גלזר","MID",70],["אופק עובדיה","MID",66],["עידו מזרחי","MID",67],["סרג'אן מיאילוביץ'","MID",69],
+                    ["מריוס נוביסי","FWD",70],["דוד אסנקה","FWD",69],["עידן ברנס","FWD",67],["מתן חוזז","FWD",72],["לואן קמפוס","FWD",70]
+                ].map((x,i)=>({id:"hrg_"+i,name:x[0],pos:x[1],overall:x[2],val:x[2]*18000,fatigue:0,injured:0}))
+            },
+            "Ironi Kiryat Shmona": {
+                name: "עירוני קריית שמונה", badge: "https://placehold.co/100x100/2563eb/ffffff?text=IKS", budget: 4000000, rating: 70,
+                roster: [
+                    ["דניאל טננבאום","GK",70],["ברטקוס","GK",69],["שוער צעיר","GK",64],
+                    ["אופיר בנבנישתי","DEF",67],["אורי בן חמו","DEF",68],["איאד אבו עביד","DEF",71],["שחקן הגנה זר","DEF",69],["מוחמד שכר","DEF",68],["נועם כהן","DEF",67],["רועי חטואל","DEF",69],
+                    ["עדן שמיר","MID",73],["יואב הופמייסטר","MID",71],["אדריאן רוצ'ט","MID",70],["בר כהן","MID",69],["שחקן קישור זר","MID",70],["עומר לקאו","MID",68],["נועם מלמוד","MID",67],
+                    ["אדריאן אוגריסה","FWD",71],["איתי בן שבת","FWD",67],["חלוץ זר","FWD",70],["רועי זיקרי","FWD",69],["שחקן התקפה צעיר","FWD",65]
+                ].map((x,i)=>({id:"iks_"+i,name:x[0],pos:x[1],overall:x[2],val:x[2]*18000,fatigue:0,injured:0}))
+            },
+            "Hapoel Petah Tikva": {
+                name: "הפועל פתח תקווה", badge: "https://placehold.co/100x100/2563eb/ffffff?text=HPT", budget: 4300000, rating: 70,
+                roster: [
+                    ["עומר כץ","GK",71],["עמית משיח","GK",66],
+                    ["רוי בן נביא","DEF",68],["אבישי כהן","DEF",70],["הראל שלום","DEF",69],["דייגו ארויו","DEF",71],["אלכס מוסונדה","DEF",70],["סתיו ישראלי","DEF",67],["אור ישראלוב","DEF",68],["יער זמברובסקי","DEF",66],["משה מאיר","DEF",67],["יזן נסאר","DEF",68],
+                    ["איתי אהוד","MID",67],["תומר אלטמן","MID",72],["אדמונד אסנטה","MID",70],["רועי דוד","MID",69],["כרים קימבודי","MID",68],["נועם כהן","MID",67],["בוני אמיאן","MID",70],
+                    ["יבס אריק בילה","FWD",73],["רועי לוי","FWD",70],["פרנק ריבולאר","FWD",69],["חמידו קייטה","FWD",71],["גיא בדש","FWD",73],["עומרי כהן","FWD",66],["אנדרדה אוקלידס","FWD",70]
+                ].map((x,i)=>({id:"hpt_"+i,name:x[0],pos:x[1],overall:x[2],val:x[2]*18000,fatigue:0,injured:0}))
+            }
+
+
+            ,
+            "Beitar Jerusalem": {
+                name: "בית״ר ירושלים", badge: "https://placehold.co/100x100/facc15/111827?text=BTJ", budget: 9000000, rating: 77,
+                roster: [
+                    ["יהונתן עוזר","GK",67],["דביר ניר","GK",66],["מיגל סילבה","GK",75],
+                    ["נאנא אנטווי","DEF",71],["בריאן קארבאלי","DEF",73],["גיל כהן","DEF",72],["רועי אלימלך","DEF",71],["ירדן כהן","DEF",70],["ליאל דרעי","DEF",67],["לוקה גאדראני","DEF",73],
+                    ["זיו בן שימול","MID",70],["עדי יונה","MID",75],["נועם מוצ'ה","MID",68],["דניאל וורקו","MID",69],["תומר יוספי","MID",73],["בוריס אינו","MID",74],["אלכסיס סרנה","MID",74],
+                    ["ירדן שועה","FWD",79],["ג'ונבוסקו קאלו","FWD",73],["טימוטי מוזי","FWD",72],["יוג'ין אנסה","FWD",73],["רביד אברג'יל","FWD",68],["שון וייסמן","FWD",76],["אורי עזו","FWD",70],["עומר אצילי","FWD",80],["נבו שדו","FWD",67]
+                ].map((x,i)=>({id:"btj_"+i,name:x[0],pos:x[1],overall:x[2],val:x[2]*22000,fatigue:0,injured:0}))
+            }
+
+        };
+
+        // מאגר שחקנים חופשיים ישראלים בתוך המשחק (דירוגים ושווי הם לצורכי משחק, לא נתוני שוק רשמיים)
+        const FREE_AGENTS_POOL = [
+            { id: "fa_1", name: "מאור בוזגלו", pos: "MID", overall: 74, val: 500000, fatigue: 0, injured: 0, nationality: "ישראלי", marketLabel: "חופשי · ישראל" },
+            { id: "fa_2", name: "איתי שכטר", pos: "FWD", overall: 72, val: 400000, fatigue: 0, injured: 0, nationality: "ישראלי", marketLabel: "חופשי · ישראל" },
+            { id: "fa_3", name: "שיר צדק", pos: "DEF", overall: 71, val: 350000, fatigue: 0, injured: 0, nationality: "ישראלי", marketLabel: "חופשי · ישראל" },
+            { id: "fa_4", name: "גיא חיימוב", pos: "GK", overall: 73, val: 450000, fatigue: 0, injured: 0, nationality: "ישראלי", marketLabel: "חופשי · ישראל" },
+            { id: "fa_5", name: "שחקן ישראלי חופשי א׳", pos: "DEF", overall: 68, val: 250000, fatigue: 0, injured: 0, nationality: "ישראלי", marketLabel: "חופשי · ישראל" },
+            { id: "fa_6", name: "שחקן ישראלי חופשי ב׳", pos: "MID", overall: 70, val: 320000, fatigue: 0, injured: 0, nationality: "ישראלי", marketLabel: "חופשי · ישראל" },
+            { id: "fa_7", name: "שחקן ישראלי חופשי ג׳", pos: "FWD", overall: 69, val: 280000, fatigue: 0, injured: 0, nationality: "ישראלי", marketLabel: "חופשי · ישראל" },
+            { id: "fa_8", name: "שוער ישראלי חופשי", pos: "GK", overall: 67, val: 200000, fatigue: 0, injured: 0, nationality: "ישראלי", marketLabel: "חופשי · ישראל" }
+        ];
+
+        // לגיונרים ישראלים לשוק ההעברות. דירוגים ושווי הם הערכות משחק; המועדון בחו״ל אינו מוצג כנתון מאומת לעונת 2026/27.
+        const ISRAELI_LEGIONNAIRES_POOL = [
+            { id: "leg_solomon", name: "מנור סולומון", pos: "FWD", overall: 78, val: 6500000, fatigue: 0, injured: 0, nationality: "ישראלי", teamName: "לגיונר · חו״ל", type: "legionnaire" },
+            { id: "leg_gloukh", name: "אוסקר גלוך", pos: "MID", overall: 79, val: 9000000, fatigue: 0, injured: 0, nationality: "ישראלי", teamName: "לגיונר · חו״ל", type: "legionnaire" },
+            { id: "leg_peretz", name: "דניאל פרץ", pos: "GK", overall: 76, val: 4500000, fatigue: 0, injured: 0, nationality: "ישראלי", teamName: "לגיונר · חו״ל", type: "legionnaire" },
+            { id: "leg_abada", name: "ליאל עבדה", pos: "FWD", overall: 75, val: 4000000, fatigue: 0, injured: 0, nationality: "ישראלי", teamName: "לגיונר · חו״ל", type: "legionnaire" },
+            { id: "leg_baribo", name: "תאי בריבו", pos: "FWD", overall: 74, val: 2800000, fatigue: 0, injured: 0, nationality: "ישראלי", teamName: "לגיונר · חו״ל", type: "legionnaire" },
+            { id: "leg_dasa", name: "אלי דסה", pos: "DEF", overall: 74, val: 1300000, fatigue: 0, injured: 0, nationality: "ישראלי", teamName: "לגיונר · חו״ל", type: "legionnaire" },
+            { id: "leg_weissman", name: "שון וייסמן", pos: "FWD", overall: 73, val: 1700000, fatigue: 0, injured: 0, nationality: "ישראלי", teamName: "לגיונר · חו״ל", type: "legionnaire" },
+            { id: "leg_gandelman", name: "עומרי גנדלמן", pos: "MID", overall: 74, val: 2500000, fatigue: 0, injured: 0, nationality: "ישראלי", teamName: "לגיונר · חו״ל", type: "legionnaire" },
+            { id: "leg_abufani", name: "מוחמד אבו פאני", pos: "MID", overall: 75, val: 3000000, fatigue: 0, injured: 0, nationality: "ישראלי", teamName: "לגיונר · חו״ל", type: "legionnaire" },
+            { id: "leg_khalaili", name: "ענאן חלאילי", pos: "FWD", overall: 74, val: 3500000, fatigue: 0, injured: 0, nationality: "ישראלי", teamName: "לגיונר · חו״ל", type: "legionnaire" }
+        ];
+
+        // שחקנים זרים ששיחקו בליגת העל בישראל בשנים 2021–2026; מאגר משחק היסטורי, לא התחייבות שהם חופשיים במציאות.
+        const ISRAEL_FOREIGN_POOL = [
+          {id:'for_chery',name:'טיארון שרי',pos:'MID',overall:77,val:1800000,fatigue:0,injured:0,nationality:'סורינאמי',type:'foreign'},
+          {id:'for_pierrot',name:'פרנזדי פיירו',pos:'FWD',overall:76,val:2200000,fatigue:0,injured:0,nationality:'האיטי',type:'foreign'},
+          {id:'for_seck',name:'עבדולאי סק',pos:'DEF',overall:75,val:1300000,fatigue:0,injured:0,nationality:'סנגלי',type:'foreign'},
+          {id:'for_sundgren',name:'דניאל סונדגרן',pos:'DEF',overall:74,val:750000,fatigue:0,injured:0,nationality:'שוודי',type:'foreign'},
+          {id:'for_cornud',name:'פייר קורנו',pos:'DEF',overall:73,val:900000,fatigue:0,injured:0,nationality:'צרפתי',type:'foreign'},
+          {id:'for_batubinsika',name:'דילן בטובינסיקה',pos:'DEF',overall:73,val:950000,fatigue:0,injured:0,nationality:'קונגולזי',type:'foreign'},
+          {id:'for_chibota',name:'מוויס צ׳יבוטה',pos:'FWD',overall:71,val:600000,fatigue:0,injured:0,nationality:'קונגולזי',type:'foreign'},
+          {id:'for_kangwa',name:'קינגס קנגווה',pos:'MID',overall:75,val:1800000,fatigue:0,injured:0,nationality:'זמבי',type:'foreign'},
+          {id:'for_ansah',name:'יוג׳ין אנסה',pos:'FWD',overall:73,val:900000,fatigue:0,injured:0,nationality:'גנאי',type:'foreign'},
+          {id:'for_heloder',name:'הלדר לופס',pos:'DEF',overall:72,val:450000,fatigue:0,injured:0,nationality:'פורטוגלי',type:'foreign'},
+          {id:'for_zlatanovic',name:'איגור זלטנוביץ׳',pos:'FWD',overall:74,val:1100000,fatigue:0,injured:0,nationality:'סרבי',type:'foreign'},
+          {id:'for_ventura',name:'לוקאס ונטורה',pos:'MID',overall:72,val:850000,fatigue:0,injured:0,nationality:'ברזילאי',type:'foreign'},
+          {id:'for_diop',name:'ג׳יבריל דיופ',pos:'DEF',overall:72,val:650000,fatigue:0,injured:0,nationality:'סנגלי',type:'foreign'},
+          {id:'for_milson',name:'מילסון',pos:'FWD',overall:77,val:3000000,fatigue:0,injured:0,nationality:'אנגולי',type:'foreign'},
+          {id:'for_saborit',name:'אנריק סבוריט',pos:'DEF',overall:75,val:950000,fatigue:0,injured:0,nationality:'ספרדי',type:'foreign'},
+          {id:'for_pesic',name:'אלכסנדר פשיץ׳',pos:'FWD',overall:74,val:850000,fatigue:0,injured:0,nationality:'סרבי',type:'foreign'},
+          {id:'for_vanovereem',name:'יוריס ואן אובריים',pos:'MID',overall:73,val:800000,fatigue:0,injured:0,nationality:'הולנדי',type:'foreign'},
+          {id:'for_twumasi',name:'פטריק טוואמסי',pos:'FWD',overall:73,val:700000,fatigue:0,injured:0,nationality:'גנאי',type:'foreign'},
+          {id:'for_soro',name:'איסמעילה סורו',pos:'MID',overall:72,val:650000,fatigue:0,injured:0,nationality:'איבוארי',type:'foreign'},
+          {id:'for_george',name:'מיירון ג׳ורג׳',pos:'FWD',overall:72,val:600000,fatigue:0,injured:0,nationality:'קוסטה ריקני',type:'foreign'},
+          {id:'for_marcelin',name:'ז׳אן מרסלן',pos:'DEF',overall:71,val:500000,fatigue:0,injured:0,nationality:'צרפתי',type:'foreign'},
+          {id:'for_silva',name:'מיגל סילבה',pos:'GK',overall:73,val:500000,fatigue:0,injured:0,nationality:'פורטוגלי',type:'foreign'},
+          {id:'for_omenga',name:'סטפן אומאונגה',pos:'MID',overall:71,val:450000,fatigue:0,injured:0,nationality:'בלגי',type:'foreign'},
+          {id:'for_adeniyi',name:'ג׳יימס אדניאי',pos:'FWD',overall:70,val:400000,fatigue:0,injured:0,nationality:'ניגרי',type:'foreign'},
+          {id:'for_owusu',name:'לירוי אוסו',pos:'DEF',overall:71,val:450000,fatigue:0,injured:0,nationality:'הולנדי',type:'foreign'},
+          {id:'for_keyta',name:'חמידו קייטה',pos:'FWD',overall:72,val:650000,fatigue:0,injured:0,nationality:'גינאי',type:'foreign'},
+          {id:'for_bile',name:'איב סנדה בילה',pos:'FWD',overall:70,val:500000,fatigue:0,injured:0,nationality:'צרפתי',type:'foreign'},
+          {id:'for_godwin',name:'צ׳ינמרם גודווין',pos:'FWD',overall:69,val:350000,fatigue:0,injured:0,nationality:'ניגרי',type:'foreign'},
+          {id:'for_ndzie',name:'מרטין אנדזיה',pos:'DEF',overall:68,val:250000,fatigue:0,injured:0,nationality:'קמרוני',type:'foreign'},
+          {id:'for_awany',name:'טימותי אוואני',pos:'DEF',overall:71,val:500000,fatigue:0,injured:0,nationality:'אוגנדי',type:'foreign'}
+        ];
+
+        let gameState = {
+            view: 'select',
+            teamKey: null,
+            team: null,
+            currentGameweek: 0,
+            table: [],
+            gameweeks: [],
+            morale: 75,
+            boardObjective: "סיים את העונה בטופ 4 וקדם שחקנים צעירים",
+            freeAgents: [...FREE_AGENTS_POOL],
+            activeNegotiationPlayer: null,
+            newsFeed: ["העונה החדשה בליגת העל יצאה לדרך, כל הסגלים נסגרו וכל הקבוצות מוכנות למאבק."],
+            starters: [], goalScorers: [], youth: [], cupRounds: [], cupRound: 0, cupWinner: null, leagueChampion: null,
+            season: 1, superCupPlayed: false, superCup: null, playerMessages: [], messageSeq: 1,
+            formation: '4-3-3', tacticalStyle: 'balanced', trainingFocus: 'balanced',
+            fanApproval: 68, boardConfidence: 70, incomingOffers: [], offerSeq: 1,
+            lastPressTopic: 'תוצאות', totalIncome: 0, totalExpenses: 0, suspendedPlayers: []
+        };
+
+
+        function teamBadgeHTML(key, size='') {
+          const t=TEAMS_DATABASE[key]; if(!t) return `<span class="club-badge ${size}" style="--badge-a:#334155;--badge-b:#0f172a">FC</span>`;
+          const colors = {mnt:['#facc15','#111827','MN'],mta:['#1d4ed8','#facc15','MT'],mac:['#15803d','#dcfce7','MH'],hbs:['#991b1b','#111827','BS'],hta:['#dc2626','#ffffff','HT'],hhf:['#dc2626','#1e3a8a','HH'],sak:['#16a34a','#ffffff','BS'],tib:['#0284c7','#f8fafc','IT'],mpt:['#2563eb','#ffffff','MP'],hjm:['#991b1b','#f8fafc','HJ'],hrg:['#b91c1c','#f8fafc','HR'],iks:['#1d4ed8','#facc15','KS'],hpt:['#2563eb','#ffffff','HP'],btj:['#facc15','#111827','BJ']};
+          let c=colors[key]||['#475569','#0f172a',t.name.slice(0,2)];
+          return `<span class="club-badge ${size}" title="${t.name}" style="--badge-a:${c[0]};--badge-b:${c[1]}">${c[2]}</span>`;
+        }
+
+        function initGame() {
+            const container = document.getElementById('app');
+            if (gameState.view === 'select') {
+                renderTeamSelect(container);
+            } else {
+                renderDashboard(container);
+            }
+        }
+
+        function renderTeamSelect(container) {
+            let html = `
+                <div class="my-auto glass-panel p-8 rounded-3xl text-center space-y-6 max-w-2xl mx-auto border border-ea-green glow-green">
+                    <div class="space-y-2">
+                        <span class="px-3 py-1 bg-ea-green/20 text-ea-green text-xs font-bold rounded-full">EA SPORTS FC 27 - PRO</span>
+                        <h1 class="text-3xl font-black text-white">בחר קבוצה לקריירה מלאה</h1>
+                        <p class="text-xs text-slate-400">מערך טקטי, חילופים, מחלקת נוער, גביע המדינה וטקס אליפות</p>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            `;
+            for (const [key, t] of Object.entries(TEAMS_DATABASE)) {
+                html += `
+                    <div onclick="selectTeam('${key}')" class="glass-card p-3 rounded-2xl cursor-pointer flex flex-col items-center gap-2 text-center hover:border-ea-green">
+                        ${teamBadgeHTML(key, 'large')}
+                        <div>
+                            <h3 class="font-black text-white text-xs">${t.name}</h3>
+                            <span class="text-[10px] text-ea-green font-bold">דירוג: ${t.rating}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            html += `</div></div>`;
+            container.innerHTML = html;
+        }
+
+        function chooseStartingXI(roster) {
+            const available = roster.filter(p => !p.injured);
+            const picked = [];
+            const take = (pos, count) => available.filter(p => p.pos === pos && !picked.includes(p)).sort((a,b)=>b.overall-a.overall).slice(0,count).forEach(p=>picked.push(p));
+            take('GK',1); take('DEF',4); take('MID',3); take('FWD',3);
+            available.filter(p=>!picked.includes(p)).sort((a,b)=>b.overall-a.overall).slice(0,Math.max(0,11-picked.length)).forEach(p=>picked.push(p));
+            return picked.slice(0,11).map(p=>p.id);
+        }
+
+        function selectTeam(key) {
+            gameState.teamKey = key;
+            gameState.team = JSON.parse(JSON.stringify(TEAMS_DATABASE[key]));
+            gameState.view = 'hub';
+            gameState.starters = chooseStartingXI(gameState.team.roster);
+            gameState.playerMessages = [];
+            generatePlayerMessage(true);
+            gameState.youth = makeYouthPlayers();
+            generateLeagueSchedule();
+            generateCup();
+            initGame();
+        }
+
+        function generateLeagueSchedule() {
+            let teams = Object.keys(TEAMS_DATABASE);
+            if (teams.length % 2 !== 0) teams.push("BYE");
+            const n = teams.length;
+            const rounds = n - 1;
+            const half = n / 2;
+            let currentTeams = [...teams];
+            let roundPairs1 = [];
+
+            for (let r = 0; r < rounds; r++) {
+                let roundMatches = [];
+                for (let i = 0; i < half; i++) {
+                    let home = currentTeams[i];
+                    let away = currentTeams[n - 1 - i];
+                    if (home !== "BYE" && away !== "BYE") {
+                        if (r % 2 === 0) {
+                            roundMatches.push({ home: home, away: away, played: false, score: null });
+                        } else {
+                            roundMatches.push({ home: away, away: home, played: false, score: null });
+                        }
+                    }
+                }
+                roundPairs1.push(roundMatches);
+                let temp = currentTeams.pop();
+                currentTeams.splice(1, 0, temp);
+            }
+
+            let roundPairs2 = roundPairs1.map(round =>
+                round.map(m => ({ home: m.away, away: m.home, played: false, score: null }))
+            );
+
+            gameState.gameweeks = [...roundPairs1, ...roundPairs2];
+            gameState.table = teams.filter(t => t !== "BYE").map(t => ({
+                name: TEAMS_DATABASE[t].name,
+                key: t,
+                p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0
+            }));
+        }
+
+        function renderDashboard(container) {
+            let activeTab = gameState.view;
+            container.innerHTML = `
+                <header class="glass-panel p-4 rounded-2xl mb-4 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        ${teamBadgeHTML(gameState.teamKey)}
+                        <div>
+                            <h2 class="font-black text-white text-sm">${gameState.team.name}</h2>
+                            <p class="text-xs text-ea-green font-bold">תקציב: ${(gameState.team.budget/1000000).toFixed(1)}M € | מוראל: ${gameState.morale}%</p>
+                        </div>
+                    </div>
+                    <nav class="flex gap-2 text-xs font-bold">
+                        <button onclick="switchView('hub')" class="px-4 py-2 rounded-xl ${activeTab === 'hub' ? 'bg-ea-green text-slate-950' : 'bg-slate-800 text-slate-300'}">מרכז הקריירה</button>
+                        <button onclick="switchView('squad')" class="px-4 py-2 rounded-xl ${activeTab === 'squad' ? 'bg-ea-green text-slate-950' : 'bg-slate-800 text-slate-300'}">סגל וחילופים</button>
+                        <button onclick="switchView('transfers')" class="px-4 py-2 rounded-xl ${activeTab === 'transfers' ? 'bg-ea-green text-slate-950' : 'bg-slate-800 text-slate-300'}">העברות ושחקנים חופשיים</button>
+                        <button onclick="switchView('youth')" class="px-4 py-2 rounded-xl ${activeTab === 'youth' ? 'bg-ea-green text-slate-950' : 'bg-slate-800 text-slate-300'}">מחלקת נוער</button>
+                        <button onclick="switchView('cup')" class="px-4 py-2 rounded-xl ${activeTab === 'cup' ? 'bg-ea-green text-slate-950' : 'bg-slate-800 text-slate-300'}">גביע המדינה</button>
+                        <button onclick="switchView('media')" class="px-4 py-2 rounded-xl ${activeTab === 'media' ? 'bg-ea-green text-slate-950' : 'bg-slate-800 text-slate-300'}">מדיה וחדשות</button>
+                        <button onclick="switchView('management')" class="px-4 py-2 rounded-xl ${activeTab === 'management' ? 'bg-ea-green text-slate-950' : 'bg-slate-800 text-slate-300'}">🧠 ניהול המועדון</button>
+                         <button onclick="switchView('inbox')" class="px-4 py-2 rounded-xl ${activeTab === 'inbox' ? 'bg-ea-green text-slate-950' : 'bg-slate-800 text-slate-300'}">📩 הודעות שחקנים</button>
+                    </nav>
+                </header>
+                <main class="flex-1 flex flex-col">
+                    ${activeTab === 'hub' ? getHubHTML() : activeTab === 'squad' ? getSquadHTML() : activeTab === 'transfers' ? getTransfersHTML() : activeTab === 'youth' ? getYouthHTML() : activeTab === 'media' ? getMediaHTML() : activeTab === 'inbox' ? getInboxHTML() : activeTab === 'management' ? getManagementHTML() : getCupHTML()}
+                </main>
+            `;
+        }
+
+        function switchView(v) {
+            gameState.view = v;
+            initGame();
+        }
+
+
+        function generatePlayerMessage(force=false) {
+            if (!gameState.team || !gameState.team.roster?.length) return;
+            const roster = gameState.team.roster.filter(p => p.pos !== 'GK');
+            if (!roster.length) return;
+            const p = roster[Math.floor(Math.random()*roster.length)];
+            const types = [
+                {type:'minutes',subject:'רוצה יותר דקות משחק',body:`אני מרגיש שאני יכול לתרום יותר. אשמח לקבל יותר דקות במשחקים הקרובים.`},
+                {type:'bench',subject:'מתוסכל מהספסל',body:`לא פשוט לי לשבת על הספסל שוב. אני רוצה להבין מה המקום שלי בתוכניות שלך.`},
+                {type:'wage',subject:'מבקש שדרוג שכר',body:`אני משקיע באימונים ומרגיש שהגיע הזמן לדבר על שיפור החוזה שלי.`},
+                {type:'transfer',subject:'מבקש לעבור לקבוצה אחרת',body:`אני רוצה לשחק באופן קבוע ושוקל לבקש מעבר אם המצב לא ישתנה.`}
+            ];
+            const t=types[Math.floor(Math.random()*types.length)];
+            if (!force && gameState.playerMessages.some(m=>m.playerId===p.id && !m.done)) return;
+            gameState.playerMessages.unshift({id:gameState.messageSeq++,playerId:p.id,playerName:p.name,type:t.type,subject:t.subject,body:t.body,done:false,date:`מחזור ${gameState.currentGameweek+1}`});
+            gameState.newsFeed.unshift(`📩 ${p.name} פנה למאמן: ${t.subject}.`);
+        }
+        function getInboxHTML() {
+            const msgs=gameState.playerMessages||[];
+            return `<section class="glass-panel p-5 rounded-2xl space-y-4">
+              <div class="flex items-center justify-between gap-3"><div><h2 class="text-xl font-black">📩 תיבת הודעות השחקנים</h2><p class="text-xs text-slate-400 mt-1">ההחלטות שלך משפיעות על שביעות הרצון, המורל והנאמנות.</p></div><button onclick="generatePlayerMessage(true);initGame()" class="px-3 py-2 rounded-xl bg-slate-800 text-xs font-bold">קבל הודעה חדשה</button></div>
+              ${msgs.length?msgs.map(m=>{const p=gameState.team.roster.find(x=>x.id===m.playerId);return `<article class="glass-card p-4 rounded-xl border ${m.done?'border-slate-700 opacity-70':'border-yellow-400/40'}">
+                <div class="flex justify-between gap-3"><div><div class="font-black">${m.playerName} <span class="text-xs text-slate-400 font-normal">· ${m.date}</span></div><div class="text-sm text-yellow-300 font-bold mt-1">${m.subject}</div></div><span class="text-xs ${m.done?'text-slate-500':'text-ea-green'}">${m.done?'טופל':'ממתין לתשובה'}</span></div>
+                <p class="text-sm text-slate-300 my-3">${m.body}</p>
+                ${!m.done?`<div class="flex flex-wrap gap-2">${(m.type==='minutes'?[['minutes','להבטיח יותר דקות'],['reject','להסביר שצריך להרוויח מקום']]:m.type==='bench'?[['minutes','לתת הזדמנות בהרכב'],['reject','לדחות את הבקשה']]:m.type==='wage'?[['contract','להציע חוזה משופר'],['reject','לדחות את הבקשה']]:[['sell','להסכים למכירה'],['reject','לבקש שיישאר']]).map(a=>`<button onclick="answerPlayerMessage(${m.id},'${a[0]}')" class="px-3 py-2 rounded-lg text-xs font-bold ${a[0]==='reject'?'bg-slate-700':'bg-ea-green text-slate-950'}">${a[1]}</button>`).join('')}</div>`:`<p class="text-xs text-slate-400">תגובת המאמן: ${m.reply||'טופל'}</p>`}
+              </article>`}).join(''):'<div class="text-slate-400 text-sm py-8 text-center">אין הודעות כרגע. הודעות חדשות יגיעו במהלך העונה.</div>'}
+            </section>`;
+        }
+        function answerPlayerMessage(id, action) {
+            const m=gameState.playerMessages.find(x=>x.id===id); if(!m||m.done)return;
+            const p=gameState.team.roster.find(x=>x.id===m.playerId);
+            let delta=0, reply='';
+            if(action==='minutes'){delta=10;reply='הבטחתי לך הזדמנות ודקות משחק נוספות.';if(p&&!gameState.starters.includes(p.id))gameState.starters[gameState.starters.length%11]=p.id;}
+            else if(action==='contract'){delta=8;reply='הצעתי לך חוזה משופר. נפתח משא ומתן על התנאים.';if(p)p.wage=Math.round((p.wage||5000)*1.15);}
+            else if(action==='sell'){delta=2;reply='הסכמתי לבחון הצעות ולנהל משא ומתן על העברה.';if(p)p.transferListed=true;}
+            else {delta=-7;reply='דחיתי את הבקשה והסברתי את ההחלטה המקצועית.';}
+            gameState.morale=Math.max(0,Math.min(100,gameState.morale+delta));
+            if(p){p.satisfaction=Math.max(0,Math.min(100,(p.satisfaction??65)+delta));p.loyalty=Math.max(0,Math.min(100,(p.loyalty??70)+(action==='sell'?-8:delta>0?5:-5)));}
+            m.done=true;m.reply=reply;gameState.newsFeed.unshift(`תגובת המאמן ל${m.playerName}: ${reply}`);initGame();
+        }
+
+        function getManagementHTML() {
+            const roster=gameState.team.roster||[];
+            const offers=gameState.incomingOffers||[];
+            const injured=roster.filter(p=>p.injured>0);
+            const listed=roster.filter(p=>p.transferListed);
+            const wageBill=roster.reduce((n,p)=>n+(p.wage||Math.round((p.overall||60)*180)),0)*4;
+            return `<div class="space-y-4">
+              <section class="glass-panel p-5 rounded-2xl"><div class="flex flex-wrap justify-between gap-3 items-center"><div><h2 class="text-xl font-black">🧠 מרכז ניהול המועדון</h2><p class="text-xs text-slate-400 mt-1">החלטות ניהוליות משפיעות על תוצאות, מורל, תקציב והמשך הקריירה.</p></div><span class="px-3 py-2 rounded-xl bg-slate-900 text-xs">עונה ${gameState.season} · מחזור ${Math.min(gameState.currentGameweek+1,gameState.gameweeks.length)}</span></div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                  <div class="glass-card p-3 rounded-xl"><div class="text-xs text-slate-400">תקציב העברות</div><div class="text-lg font-black text-ea-green">€${(gameState.team.budget/1000000).toFixed(2)}M</div></div>
+                  <div class="glass-card p-3 rounded-xl"><div class="text-xs text-slate-400">אישור האוהדים</div><div class="text-lg font-black text-yellow-300">${gameState.fanApproval}%</div><div class="h-1.5 bg-slate-800 rounded mt-2"><div class="h-full bg-yellow-400 rounded" style="width:${gameState.fanApproval}%"></div></div></div>
+                  <div class="glass-card p-3 rounded-xl"><div class="text-xs text-slate-400">אמון ההנהלה</div><div class="text-lg font-black">${gameState.boardConfidence}%</div><div class="h-1.5 bg-slate-800 rounded mt-2"><div class="h-full bg-ea-green rounded" style="width:${gameState.boardConfidence}%"></div></div></div>
+                  <div class="glass-card p-3 rounded-xl"><div class="text-xs text-slate-400">פצועים כרגע</div><div class="text-lg font-black ${injured.length?'text-red-300':'text-ea-green'}">${injured.length}</div></div>
+                </div>
+              </section>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <section class="glass-panel p-5 rounded-2xl space-y-3"><h3 class="font-black text-lg">🎯 טקטיקה והוראות משחק</h3><label class="block text-xs text-slate-400">מערך</label><select id="manage-formation" onchange="setTactics()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white">${['4-3-3','4-2-3-1','3-5-2','4-4-2'].map(x=>`<option ${gameState.formation===x?'selected':''}>${x}</option>`).join('')}</select><label class="block text-xs text-slate-400">סגנון משחק</label><select id="manage-style" onchange="setTactics()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white">${[['balanced','מאוזן'],['pressing','לחץ גבוה'],['counter','מתפרצות'],['possession','הנעת כדור'],['attack','התקפי'],['defensive','הגנתי']].map(([v,l])=>`<option value="${v}" ${gameState.tacticalStyle===v?'selected':''}>${l}</option>`).join('')}</select><p class="text-xs text-slate-400">הסגנון משנה את יתרון ההתקפה/ההגנה בסימולציה החיה ובתוצאות המחזור.</p></section>
+                <section class="glass-panel p-5 rounded-2xl space-y-3"><h3 class="font-black text-lg">🏋️ אימונים ופיתוח</h3><label class="block text-xs text-slate-400">מוקד האימון לשבוע הבא</label><select id="manage-training" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white">${[['balanced','אימון מאוזן'],['attack','סיומת והתקפה'],['defense','הגנה'],['fitness','כושר והתאוששות'],['youth','פיתוח צעירים']].map(([v,l])=>`<option value="${v}" ${gameState.trainingFocus===v?'selected':''}>${l}</option>`).join('')}</select><button onclick="applyTraining()" class="w-full bg-ea-green text-slate-950 rounded-xl p-3 font-black">קבע אימון והעבר שבוע אימונים</button><p class="text-xs text-slate-400">אימונים משפרים תכונות או מורידים עייפות, אך אימון חזק מדי עלול להעלות סיכון לפציעה.</p></section>
+                <section class="glass-panel p-5 rounded-2xl space-y-3"><h3 class="font-black text-lg">💶 כספים וחוזים</h3><div class="text-sm flex justify-between"><span class="text-slate-400">הערכת הוצאות שכר חודשיות</span><b>€${wageBill.toLocaleString()}</b></div><div class="text-sm flex justify-between"><span class="text-slate-400">הכנסות מצטברות</span><b class="text-ea-green">€${(gameState.totalIncome||0).toLocaleString()}</b></div><div class="text-sm flex justify-between"><span class="text-slate-400">הוצאות מצטברות</span><b class="text-red-300">€${(gameState.totalExpenses||0).toLocaleString()}</b></div><label class="block text-xs text-slate-400">בחר שחקן להארכת חוזה</label><select id="contract-player" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white">${roster.map(p=>`<option value="${p.id}">${p.name} · OVR ${p.overall} · שכר €${(p.wage||Math.round(p.overall*180)).toLocaleString()}</option>`).join('')}</select><button onclick="renewPlayerContract()" class="w-full bg-yellow-400 text-slate-950 rounded-xl p-3 font-black">הצע הארכת חוזה ושדרוג שכר</button><button onclick="sellListedPlayer()" class="w-full bg-slate-800 rounded-xl p-3 font-bold">בדוק הצעות על שחקנים ברשימת ההעברות (${listed.length})</button></section>
+                <section class="glass-panel p-5 rounded-2xl space-y-3"><h3 class="font-black text-lg">📨 הצעות מקבוצות אחרות (${offers.filter(o=>!o.done).length})</h3>${offers.filter(o=>!o.done).length?offers.filter(o=>!o.done).map(o=>`<div class="glass-card p-3 rounded-xl"><div class="font-bold">${o.club} מציעה על ${o.playerName}</div><div class="text-sm text-ea-green my-2">€${o.fee.toLocaleString()}</div><div class="flex gap-2"><button onclick="resolveTransferOffer(${o.id},true)" class="bg-ea-green text-slate-950 rounded-lg px-3 py-2 text-xs font-black">קבל הצעה</button><button onclick="resolveTransferOffer(${o.id},false)" class="bg-slate-700 rounded-lg px-3 py-2 text-xs font-bold">דחה</button></div></div>`).join(''):'<p class="text-sm text-slate-400">אין הצעות פתוחות כרגע. הצעות יגיעו במהלך העונה.</p>'}</section>
+                <section class="glass-panel p-5 rounded-2xl space-y-3"><h3 class="font-black text-lg">🎙️ מסיבת עיתונאים</h3><p class="text-sm text-slate-400">בחר נושא לשיחה עם התקשורת. התשובות משפיעות על המורל, האוהדים ואמון ההנהלה.</p><div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><button onclick="holdPressConference('ambition')" class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm">הצהרה על מטרות העונה</button><button onclick="holdPressConference('player')" class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm">הגנה על שחקן שסופג ביקורת</button><button onclick="holdPressConference('fans')" class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm">מסר לאוהדים</button><button onclick="holdPressConference('transfer')" class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm">תגובה לשמועות העברות</button></div></section>
+                <section class="glass-panel p-5 rounded-2xl space-y-3"><h3 class="font-black text-lg">🔎 סקאוטינג, נוער ורפואה</h3><p class="text-sm text-slate-400">סקאוטינג עולה כסף, אבל יכול לגלות כישרונות. רופאי הקבוצה מדווחים על מצב הפצועים.</p><button onclick="runScouting()" class="w-full bg-ea-green text-slate-950 rounded-xl p-3 font-black">שלח סקאוט (€150,000)</button><button onclick="recoverSquad()" class="w-full bg-slate-800 rounded-xl p-3 font-bold">יום התאוששות לכל הסגל</button>${injured.length?`<div class="space-y-2">${injured.map(p=>`<div class="text-xs flex justify-between border-b border-slate-800 pb-2"><span>${p.name}</span><span class="text-red-300">בחוץ לעוד ${p.injured} משחקים</span></div>`).join('')}</div>`:'<p class="text-xs text-ea-green">אין שחקנים פצועים כרגע.</p>'}</section>
+              </div>
+            </div>`;
+        }
+        function setTactics(){const f=document.getElementById('manage-formation'),s=document.getElementById('manage-style');if(f)gameState.formation=f.value;if(s)gameState.tacticalStyle=s.value;gameState.newsFeed.unshift(`המאמן עדכן טקטיקה: ${gameState.formation}, סגנון ${({balanced:'מאוזן',pressing:'לחץ גבוה',counter:'מתפרצות',possession:'הנעת כדור',attack:'התקפי',defensive:'הגנתי'})[gameState.tacticalStyle]||gameState.tacticalStyle}.`);initGame();}
+        function applyTraining(){const el=document.getElementById('manage-training');gameState.trainingFocus=el?el.value:gameState.trainingFocus;let improved=0;gameState.team.roster.forEach(p=>{if(p.injured>0)return;if(gameState.trainingFocus==='fitness')p.fatigue=Math.max(0,(p.fatigue||0)-30);else if(gameState.trainingFocus==='attack'&&p.pos==='FWD'&&p.overall<90&&Math.random()<.35){p.overall++;improved++;}else if(gameState.trainingFocus==='defense'&&p.pos==='DEF'&&p.overall<90&&Math.random()<.35){p.overall++;improved++;}else if(gameState.trainingFocus==='youth'&&p.age&&p.age<22&&p.overall<90&&Math.random()<.5){p.overall++;improved++;}else if(gameState.trainingFocus==='balanced'&&p.overall<90&&Math.random()<.08){p.overall++;improved++;}if(gameState.trainingFocus!=='fitness'&&Math.random()<.15)p.fatigue=Math.min(100,(p.fatigue||0)+8);});gameState.newsFeed.unshift(`אימון הסתיים: ${({balanced:'מאוזן',attack:'התקפה',defense:'הגנה',fitness:'כושר',youth:'פיתוח צעירים'})[gameState.trainingFocus]}. ${improved} שחקנים השתפרו.`);gameState.morale=Math.min(100,gameState.morale+2);initGame();}
+        function renewPlayerContract(){const el=document.getElementById('contract-player'),p=gameState.team.roster.find(x=>x.id===(el&&el.value));if(!p)return;const old=p.wage||Math.round(p.overall*180),newWage=Math.round(old*1.2);if(gameState.team.budget<newWage*2){alert('התקציב לא מספיק להבטחת שכר משופר.');return;}p.wage=newWage;p.contractYears=(p.contractYears||1)+2;p.satisfaction=Math.min(100,(p.satisfaction??65)+12);gameState.totalExpenses=(gameState.totalExpenses||0)+newWage*2;gameState.newsFeed.unshift(`רשמי: ${p.name} האריך חוזה לשנתיים נוספות בשכר €${newWage.toLocaleString()} לשבוע.`);gameState.morale=Math.min(100,gameState.morale+3);initGame();}
+        function runScouting(){if(gameState.team.budget<150000){alert('אין מספיק תקציב לסקאוטינג.');return;}gameState.team.budget-=150000;gameState.totalExpenses=(gameState.totalExpenses||0)+150000;const p={id:'scout_'+Date.now(),name:['אדם ברק','נועם רז','ליאם מזרחי','איתי פרץ','רועי אברהם'][Math.floor(Math.random()*5)],pos:['FWD','MID','DEF','GK'][Math.floor(Math.random()*4)],overall:60+Math.floor(Math.random()*13),val:100000+Math.floor(Math.random()*250000),age:16+Math.floor(Math.random()*5),fatigue:0,injured:0};gameState.freeAgents.push(p);gameState.newsFeed.unshift(`דוח סקאוטינג: נמצא כישרון חדש, ${p.name} (${p.pos}, דירוג ${p.overall}). הוא נוסף לשוק השחקנים החופשיים.`);initGame();}
+        function recoverSquad(){gameState.team.roster.forEach(p=>p.fatigue=Math.max(0,(p.fatigue||0)-25));gameState.morale=Math.max(0,gameState.morale-1);gameState.newsFeed.unshift('יום התאוששות: העייפות ירדה בסגל.');initGame();}
+        function holdPressConference(topic){const qs={ambition:['היעד הוא להיאבק על צמרת הטבלה.','אנחנו מתמקדים במשחק הקרוב ולא מבטיחים הבטחות.'],player:['אני מאמין בשחקנים שלי ומגן עליהם.','כל שחקן צריך להוכיח את עצמו באימונים.'],fans:['האוהדים הם הכוח שלנו ואנחנו רוצים לשמח אותם.','אנחנו מבינים את הביקורת ונענה על המגרש.'],transfer:['אנחנו עובדים בשקט ונחתים רק את השחקנים הנכונים.','אף שחקן לא יעזוב במחיר שלא מתאים למועדון.']};const answers=qs[topic]||qs.ambition;const choice=prompt(`מסיבת עיתונאים — ${({ambition:'מטרות העונה',player:'הגנה על שחקן',fans:'מסר לאוהדים',transfer:'שמועות העברות'})[topic]}\n1. ${answers[0]}\n2. ${answers[1]}\n\nהקלד 1 או 2:`);if(choice!=='1'&&choice!=='2')return;const positive=choice==='1';const delta=positive?5:1;gameState.morale=Math.max(0,Math.min(100,gameState.morale+delta));gameState.fanApproval=Math.max(0,Math.min(100,gameState.fanApproval+(topic==='fans'&&positive?8:positive?3:-2)));gameState.boardConfidence=Math.max(0,Math.min(100,gameState.boardConfidence+(topic==='ambition'&&positive?4:positive?2:-3)));const line=`מסיבת עיתונאים: ${answers[Number(choice)-1]}`;gameState.newsFeed.unshift(line);alert(`${line}\nמורל ${positive?'+':''}${delta} · אישור אוהדים ${gameState.fanApproval}% · אמון הנהלה ${gameState.boardConfidence}%`);initGame();}
+        function sellListedPlayer(){const p=gameState.team.roster.find(x=>x.transferListed);if(!p){alert('אין שחקנים ברשימת ההעברות. אפשר לסמן שחקן דרך תיבת ההודעות שלו.');return;}const fee=Math.round((p.val||250000)*(.75+Math.random()*.5));gameState.incomingOffers.unshift({id:gameState.offerSeq++,playerId:p.id,playerName:p.name,club:['הפועל חיפה','מכבי נתניה','קבוצה מחו״ל'][Math.floor(Math.random()*3)],fee,done:false});gameState.newsFeed.unshift(`הצעה התקבלה עבור ${p.name}: €${fee.toLocaleString()}.`);initGame();}
+        function resolveTransferOffer(id,accept){const o=gameState.incomingOffers.find(x=>x.id===id);if(!o||o.done)return;const p=gameState.team.roster.find(x=>x.id===o.playerId);o.done=true;if(accept&&p){gameState.team.budget+=o.fee;gameState.totalIncome=(gameState.totalIncome||0)+o.fee;gameState.team.roster=gameState.team.roster.filter(x=>x.id!==p.id);gameState.starters=gameState.starters.filter(x=>x!==p.id);gameState.fanApproval=Math.max(0,gameState.fanApproval-(p.overall>=75?5:1));gameState.newsFeed.unshift(`רשמי: ${p.name} נמכר ל${o.club} תמורת €${o.fee.toLocaleString()}.`);}else{gameState.newsFeed.unshift(`הצעת ${o.club} על ${o.playerName} נדחתה.`);gameState.boardConfidence=Math.min(100,gameState.boardConfidence+1);}initGame();}
+        function maybeGenerateTransferOffer(){const pool=gameState.team.roster.filter(p=>p.overall>=70&&!p.transferListed);if(!pool.length||Math.random()>.35)return;const p=pool[Math.floor(Math.random()*pool.length)];if(gameState.incomingOffers.some(o=>o.playerId===p.id&&!o.done))return;const fee=Math.round((p.val||300000)*(.7+Math.random()*.65));gameState.incomingOffers.unshift({id:gameState.offerSeq++,playerId:p.id,playerName:p.name,club:['מכבי חיפה','הפועל באר שבע','קבוצה מהליגה הבלגית','מועדון מהליגה הפולנית'][Math.floor(Math.random()*4)],fee,done:false});gameState.newsFeed.unshift(`שוק ההעברות: הצעה של €${fee.toLocaleString()} התקבלה עבור ${p.name}.`);}
+
+        function getMediaHTML() {
+            const channels = [
+                { name: 'ספורט 5', mark: '5', color: 'text-red-400', icon: 'fa-tv' },
+                { name: 'ONE ספורט', mark: 'ONE', color: 'text-orange-300', icon: 'fa-bolt' },
+                { name: 'ערוץ הספורט', mark: 'SPORT', color: 'text-sky-300', icon: 'fa-futbol' },
+                { name: 'חדשות הקריירה', mark: 'FC', color: 'text-ea-green', icon: 'fa-newspaper' },
+                { name: 'שוק ההעברות', mark: 'LIVE', color: 'text-yellow-300', icon: 'fa-arrows-rotate' }
+            ];
+            const items = (gameState.newsFeed || []).slice(0, 40);
+            const posts = items.map((news, i) => {
+                const channel = channels[i % channels.length];
+                const isOfficial = /רשמי|החתימ|חתם|נמכר|העברה|משא ומתן/i.test(news);
+                const isMatch = /שער|ניצחון|הפסד|תוצאה|מחזור|גביע|משחק/i.test(news);
+                const tag = isOfficial ? 'העברה / הודעה רשמית' : isMatch ? 'עדכון משחק' : 'עדכון מהליגה';
+                const time = i === 0 ? 'עכשיו' : `לפני ${i * 7} דק׳`;
+                return `
+                    <article class="glass-panel p-4 rounded-2xl border border-slate-800 space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-11 h-11 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center font-black ${channel.color}">${channel.mark}</div>
+                                <div><div class="font-black text-white text-sm">${channel.name}</div><div class="text-[10px] text-slate-500">${time} · סיקור ליגת העל</div></div>
+                            </div>
+                            <span class="text-[10px] px-2 py-1 rounded-full bg-slate-900 text-slate-300">${tag}</span>
+                        </div>
+                        <p class="text-sm leading-6 text-slate-200">${news}</p>
+                        <div class="flex items-center justify-between border-t border-slate-800 pt-2 text-[10px] text-slate-500">
+                            <span><i class="fas fa-check-circle text-ea-green ml-1"></i>עדכון בתוך מצב הקריירה</span>
+                            <span><i class="far fa-comment ml-1"></i>חדשות ותגובות</span>
+                        </div>
+                    </article>`;
+            }).join('');
+            return `
+                <section class="space-y-4 max-w-4xl mx-auto w-full">
+                    <div class="glass-panel p-5 md:p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <div class="text-xs font-bold text-ea-green mb-2"><i class="fas fa-satellite-dish ml-1"></i> MEDIA CENTER · LIVE</div>
+                            <h2 class="text-2xl font-black text-white">מדיה וערוצי הספורט</h2>
+                            <p class="text-sm text-slate-400 mt-1">עדכונים אוטומטיים על החתמות, העברות, משחקים ואירועים בקריירה שלך.</p>
+                        </div>
+                        <button onclick="switchView('transfers')" class="px-4 py-3 bg-ea-green text-slate-950 rounded-xl text-xs font-black"><i class="fas fa-right-left ml-2"></i>לשוק ההעברות</button>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        ${channels.slice(0,4).map(c => `<div class="glass-card p-3 rounded-xl flex items-center gap-2"><div class="font-black ${c.color}">${c.mark}</div><div class="text-xs text-slate-300">${c.name}</div></div>`).join('')}
+                    </div>
+                    <div class="flex items-center justify-between"><h3 class="font-black text-white"><i class="fas fa-rss text-ea-green ml-2"></i>פיד חדשות הקריירה</h3><span class="text-xs text-slate-500">${items.length} עדכונים</span></div>
+                    ${posts || `<div class="glass-panel p-8 rounded-2xl text-center text-slate-400">עדיין אין עדכונים. שחק משחק או בצע החתמה כדי לראות חדשות כאן.</div>`}
+                    <p class="text-[10px] text-slate-600 text-center">הפוסטים הם הדמיה בתוך המשחק ואינם פרסומים אמיתיים של ערוצי התקשורת.</p>
+                </section>`;
+        }
+
+        function getHubHTML() {
+            const isFinished = gameState.currentGameweek >= gameState.gameweeks.length;
+            const currentGwMatches = !isFinished ? gameState.gameweeks[gameState.currentGameweek] : [];
+            const userNextMatch = currentGwMatches.find(m => m.home === gameState.teamKey || m.away === gameState.teamKey);
+
+            let lastGameweekResultsHtml = '';
+            if (gameState.currentGameweek > 0) {
+                let lastGw = gameState.gameweeks[gameState.currentGameweek - 1];
+                lastGameweekResultsHtml = `
+                    <div class="glass-panel p-5 rounded-2xl space-y-3">
+                        <h4 class="font-bold text-xs text-ea-green flex items-center gap-2">
+                            <i class="fas fa-futbol"></i> תוצאות מחזור ${gameState.currentGameweek} בליגה
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            ${lastGw.map(m => `
+                                <div class="glass-card p-2.5 rounded-xl text-xs flex justify-between items-center">
+                                    <span class="flex items-center gap-2">${teamBadgeHTML(m.home, 'small')}${TEAMS_DATABASE[m.home].name}</span>
+                                    <span class="font-black text-ea-green bg-slate-900 px-2 py-1 rounded">${m.score}</span>
+                                    <span class="flex items-center gap-2">${teamBadgeHTML(m.away, 'small')}${TEAMS_DATABASE[m.away].name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                    <div class="space-y-4 flex flex-col">
+                        <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-black text-white text-sm mb-4 flex items-center gap-2">
+                                    <i class="fas fa-calendar-alt text-ea-green"></i> המחזור הבא
+                                </h3>
+                                ${!isFinished && userNextMatch ? `
+                                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 text-center space-y-3">
+                                        <div class="text-xs text-slate-400 font-bold">מחזור ${gameState.currentGameweek + 1} מתוך ${gameState.gameweeks.length}</div>
+                                        <div class="flex justify-around items-center font-bold text-sm">
+                                            <span class="flex flex-col items-center gap-2">${teamBadgeHTML(userNextMatch.home, 'large')}<span>${TEAMS_DATABASE[userNextMatch.home].name}</span></span>
+                                            <span class="text-ea-green text-xs px-2 py-1 bg-ea-green/10 rounded">נגד</span>
+                                            <span class="flex flex-col items-center gap-2">${teamBadgeHTML(userNextMatch.away, 'large')}<span>${TEAMS_DATABASE[userNextMatch.away].name}</span></span>
+                                        </div>
+                                    </div>
+                                ` : `<div class="text-center text-xs text-ea-green font-bold">העונה הסתיימה!</div>`}
+                            </div>
+                            ${!isFinished ? `
+                                <button onclick="playMatch()" class="w-full py-3 bg-ea-green text-slate-950 font-black rounded-xl hover:opacity-95 text-xs transition glow-green mt-4">
+                                    התחל משחק · סימולציה חיה <i class="fas fa-play ml-1"></i>
+                                </button>
+                            ` : `
+                                <button onclick="showSeasonOver()" class="w-full py-3 bg-yellow-400 text-slate-950 font-black rounded-xl hover:opacity-95 text-xs transition mt-4">
+                                    סיכום עונה <i class="fas fa-trophy ml-1"></i>
+                                </button>
+                            `}
+                        </div>
+                        <div class="glass-panel p-5 rounded-2xl space-y-2">
+                            <h4 class="font-bold text-xs text-yellow-400 flex items-center gap-2">
+                                <i class="fas fa-bullseye"></i> יעדי הנהלה
+                            </h4>
+                            <p class="text-[11px] text-slate-300">${gameState.boardObjective}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4 md:col-span-2 flex flex-col">
+                        ${lastGameweekResultsHtml}
+                        <div class="glass-panel p-6 rounded-2xl overflow-x-auto flex-1">
+                            <h3 class="font-black text-white text-sm mb-3 flex items-center gap-2">
+                                <i class="fas fa-list-ol text-ea-green"></i> טבלת ליגת העל
+                            </h3>
+                            <table class="w-full text-xs text-right">
+                                <thead>
+                                    <tr class="text-slate-400 border-b border-slate-800">
+                                        <th class="pb-2">קבוצה</th>
+                                        <th class="pb-2 text-center">משחקים</th>
+                                        <th class="pb-2 text-center">הפרש</th>
+                                        <th class="pb-2 text-center font-bold text-white">נקודות</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/50">
+                                    ${gameState.table.sort((a,b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga)).map((row, idx) => `
+                                        <tr class="${row.key === gameState.teamKey ? 'bg-ea-green/10 font-bold' : ''}">
+                                            <td class="py-2 flex items-center gap-2">
+                                                <span class="text-slate-500 w-4">${idx+1}</span>${teamBadgeHTML(row.key,'small')}<span>${row.name}</span>
+                                            </td>
+                                            <td class="text-center">${row.p}</td>
+                                            <td class="text-center">${row.gf - row.ga}</td>
+                                            <td class="text-center font-black text-ea-green">${row.pts}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="glass-panel p-5 rounded-2xl overflow-x-auto">
+                          <h3 class="font-black text-sm mb-3 flex items-center gap-2"><i class="fas fa-trophy text-yellow-400"></i> מלך השערים</h3>
+                          ${gameState.goalScorers.length ? `<table class="w-full text-xs text-right"><thead><tr class="text-slate-400 border-b border-slate-700"><th class="pb-2">#</th><th class="pb-2">שחקן</th><th class="pb-2">קבוצה</th><th class="pb-2 text-center">שערים</th></tr></thead><tbody>${[...gameState.goalScorers].sort((a,b)=>b.goals-a.goals||a.name.localeCompare(b.name)).slice(0,10).map((p,i)=>`<tr class="border-b border-white/5"><td class="py-2 text-slate-500">${i+1}</td><td class="py-2 font-bold">${p.name}</td><td>${p.teamName}</td><td class="text-center font-black text-yellow-300">${p.goals}</td></tr>`).join('')}</tbody></table>` : `<p class="text-xs text-slate-400">טבלת מלך השערים תתמלא אחרי המשחק הראשון. הכובשים מתווספים לפי תוצאות הסימולציה.</p>`}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getSquadHTML() {
+            const starters = gameState.starters.map(id => gameState.team.roster.find(p => p.id === id)).filter(Boolean);
+            const bench = gameState.team.roster.filter(p => !gameState.starters.includes(p.id));
+            // מציגים לפי משבצות מערך, לא לפי העמדה המקורית של השחקן — כך כנף/חלוץ לעולם לא נעלם.
+            const slots = [
+              {label:'שוער',count:1}, {label:'הגנה',count:4},
+              {label:'קישור',count:3}, {label:'התקפה',count:3}
+            ];
+            let offset=0;
+            const slotRows = slots.map(slot => {
+              const players=starters.slice(offset,offset+slot.count); offset+=slot.count;
+              return `<div class="flex justify-center items-stretch gap-2 flex-wrap">${players.map((p,i)=>playerChip(p,slot.label+(players.length>1?' '+(i+1):''))).join('')}${Array.from({length:Math.max(0,slot.count-players.length)},(_,i)=>`<div class="bg-black/30 border border-dashed border-white/20 rounded-xl p-3 text-center text-[10px] min-w-[90px]">משבצת פנויה</div>`).join('')}</div>`;
+            }).join('');
+            return `<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <section class="glass-panel p-5 rounded-2xl lg:col-span-2"><div class="flex flex-wrap justify-between items-center gap-2 mb-3"><h3 class="font-black text-lg">⚽ המערך שלך — 4-3-3</h3><span class="text-xs text-slate-400">בחר שחקן בהרכב ואז מחליף; אפשר גם לבחור שני שחקני הרכב</span></div>
+              <div class="relative rounded-2xl p-4 md:p-6 min-h-[420px] border-2 border-green-500/60" style="background:repeating-linear-gradient(0deg,#14532d,#14532d 48px,#166534 49px,#166534 96px)">
+                <div class="absolute inset-3 border border-white/30 rounded-xl pointer-events-none"></div><div class="relative flex flex-col justify-between min-h-[380px] gap-5">${slotRows}<div class="text-center text-[10px] text-white/70">כל 11 השחקנים מוצגים לפי משבצות המערך גם אם העמדה המקורית שלהם שונה.</div></div></div>
+              <div class="mt-3 text-xs text-slate-300">הרכב: ${starters.length}/11 · ספסל: ${bench.length} · שחקנים פצועים לא ניתן להכניס להרכב.</div></section>
+              <section class="glass-panel p-5 rounded-2xl"><h3 class="font-black text-lg mb-3">🪑 ספסל וחילופים</h3><p class="text-xs text-slate-400 mb-3">בחר שחקן מהספסל כדי להחליף אותו עם שחקן שנבחר בהרכב.</p>
+              <div class="space-y-2 max-h-[490px] overflow-y-auto">${bench.map(p=>`<button onclick="chooseBenchPlayer('${p.id}')" ${p.injured?'disabled':''} class="w-full text-right glass-card rounded-xl p-3 flex justify-between items-center ${p.injured?'opacity-40':''}"><span><b>${p.name}</b><small class="block text-slate-400">${posName(p.pos)} · עייפות ${p.fatigue}% ${p.injured?'· פצוע':''}</small></span><span class="font-black text-ea-green">${p.overall}</span></button>`).join('')}</div>
+              <div class="mt-3 text-xs text-yellow-300">${gameState.selectedStarter ? 'נבחר: '+(gameState.team.roster.find(p=>p.id===gameState.selectedStarter)||{}).name+' — עכשיו בחר מחליף או שחקן אחר בהרכב' : 'לחץ על שחקן במגרש כדי לבחור אותו'}</div></section>
+              <section class="glass-panel p-5 rounded-2xl lg:col-span-3"><div class="flex flex-wrap justify-between items-center mb-3"><h3 class="font-bold">כל הסגל · עייפות ופציעות</h3><span class="text-xs text-slate-400">${gameState.team.roster.length} שחקנים בסגל · ${bench.length} מחליפים</span></div><div class="grid grid-cols-1 md:grid-cols-3 gap-2">${gameState.team.roster.map(p=>`<div class="glass-card rounded-xl p-3 text-xs flex justify-between items-center gap-2"><span>${p.name} ${p.injured?'<b class="text-red-400">פצוע</b>':''}</span><span>${posName(p.pos)} · ${p.overall} · ${p.fatigue}%</span><button onclick="sellPlayer('${p.id}')" class="shrink-0 px-2 py-1 rounded-lg bg-red-500/20 text-red-300 font-bold">מכור · ${(p.val*0.85/1000).toFixed(0)}k€</button></div>`).join('')}</div></section>
+            </div>`;
+        }
+        function posName(pos){return ({GK:'שוער',DEF:'הגנה',MID:'קישור',FWD:'התקפה'})[pos]||pos;}
+        function playerChip(p,role){if(!p)return `<div class="bg-black/40 rounded-xl p-3 text-center text-xs">חסר שחקן</div>`;return `<button onclick="selectStarter('${p.id}')" class="bg-slate-950/90 border ${gameState.selectedStarter===p.id?'border-yellow-300 ring-2 ring-yellow-300':'border-white/30'} rounded-xl px-3 py-2 text-center min-w-[90px] max-w-[140px] shadow-lg"><span class="block text-[9px] text-green-300">${role} · ${p.overall}</span><b class="text-[11px]">${p.name}</b>${p.fatigue>70?'<span class="block text-[9px] text-yellow-300">עייף</span>':''}</button>`;}
+        function selectStarter(id){
+            const clicked=gameState.team.roster.find(p=>p.id===id);
+            if(!clicked || clicked.injured){alert('אי אפשר לבחור שחקן פצוע.');return;}
+            if(gameState.selectedStarter && gameState.selectedStarter!==id){
+                const firstId=gameState.selectedStarter, first=gameState.team.roster.find(p=>p.id===firstId);
+                const a=gameState.starters.indexOf(firstId), b=gameState.starters.indexOf(id);
+                if(a!==-1 && b!==-1){ gameState.starters[a]=id; gameState.starters[b]=firstId; gameState.newsFeed.unshift(`שינוי בהרכב: ${clicked.name} ו-${first.name} החליפו משבצות.`); gameState.selectedStarter=null; initGame(); return; }
+                if(a!==-1 && b===-1){chooseBenchPlayer(id);return;}
+            }
+            gameState.selectedStarter=gameState.selectedStarter===id?null:id;initGame();
+        }
+        function chooseBenchPlayer(id){
+            const incoming=gameState.team.roster.find(p=>p.id===id);
+            if(!incoming||incoming.injured)return;
+            if(!gameState.selectedStarter){alert('בחר קודם שחקן בהרכב הפותח.');return;}
+            const outgoing=gameState.team.roster.find(p=>p.id===gameState.selectedStarter);
+            if(!outgoing)return;
+            const idx=gameState.starters.indexOf(outgoing.id);
+            if(idx<0){alert('השחקן שנבחר כבר לא בהרכב. בחר שוב.');gameState.selectedStarter=null;initGame();return;}
+            gameState.starters[idx]=incoming.id;
+            gameState.selectedStarter=null;
+            gameState.newsFeed.unshift(`חילוף בהרכב: ${incoming.name} נכנס במקום ${outgoing.name}.`);
+            initGame();
+        }
+        function makeYouthPlayers(){const first=['אורי','נועם','עידו','איתן','רועי','דניאל','יובל','אדם','ליאם','תומר','איתי','שחר'];const last=['כהן','לוי','מזרחי','פרץ','אברהם','דוד','ישראלי','מלכה','ברק','שמש','אלון','גולן'];return Array.from({length:8},(_,i)=>({id:'youth_'+i+'_'+Date.now(),name:first[Math.floor(Math.random()*first.length)]+' '+last[Math.floor(Math.random()*last.length)],pos:['GK','DEF','MID','FWD'][Math.floor(Math.random()*4)],overall:55+Math.floor(Math.random()*12),val:50000+Math.floor(Math.random()*100000),age:16+Math.floor(Math.random()*3)}));}
+        function getYouthHTML(){return `<div class="glass-panel p-6 rounded-2xl"><div class="flex justify-between items-center flex-wrap gap-3 mb-4"><div><h3 class="font-black text-xl">🎓 מחלקת הנוער</h3><p class="text-xs text-slate-400">שחקנים צעירים עם פוטנציאל להתפתח לאורך הקריירה.</p></div><button onclick="scoutYouth()" class="bg-ea-green text-slate-950 font-black rounded-xl px-4 py-2 text-xs">סרוק כישרונות חדשים</button></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">${gameState.youth.map(p=>`<div class="glass-card rounded-xl p-4"><div class="flex justify-between"><b>${p.name}</b><span class="text-ea-green font-black">${p.overall} OVR</span></div><p class="text-xs text-slate-400 mt-1">גיל ${p.age} · ${posName(p.pos)} · שווי €${(p.val/1000).toFixed(0)}K</p><div class="text-[10px] text-yellow-300 my-2">פוטנציאל: ${Math.min(92,p.overall+15+Math.floor(Math.random()*8))}</div><button onclick="promoteYouth('${p.id}')" class="w-full bg-slate-800 rounded-lg py-2 text-xs font-bold">העלה לקבוצה הבוגרת</button></div>`).join('')}</div></div>`;}
+        function scoutYouth(){if(gameState.team.budget<100000){alert('אין מספיק תקציב לסקאוטינג (100,000 €).');return;}gameState.team.budget-=100000;gameState.youth.push(...makeYouthPlayers().slice(0,3));gameState.newsFeed.unshift('מחלקת הנוער גילתה שלושה כישרונות חדשים.');initGame();}
+        function promoteYouth(id){const i=gameState.youth.findIndex(p=>p.id===id);if(i<0)return;const p=gameState.youth.splice(i,1)[0];gameState.team.roster.push({id:p.id,name:p.name,pos:p.pos,overall:p.overall,val:p.val,fatigue:0,injured:0});gameState.newsFeed.unshift(`${p.name} קודם ממחלקת הנוער לקבוצה הבוגרת!`);initGame();}
+        function generateCup(){const keys=Object.keys(TEAMS_DATABASE);const shuffled=[...keys].sort(()=>Math.random()-.5);gameState.cupRounds=[];let round=shuffled.map((key,i)=>({home:key,away:shuffled[(i+1)%shuffled.length],played:false,score:null})).filter((m,i)=>i%2===0&&m.home!==m.away);gameState.cupRounds.push(round);gameState.cupRound=0;gameState.cupWinner=null;}
+        function getCupHTML(){const rounds=gameState.cupRounds||[];return `<div class="glass-panel p-6 rounded-2xl"><h3 class="font-black text-xl mb-2">🏆 גביע המדינה</h3><p class="text-xs text-slate-400 mb-4">טורניר נוקאאוט מדומה. משחקי הגביע נפרדים ממשחקי הליגה.</p>${gameState.cupWinner?`<div class="text-center p-8"><div class="text-6xl">🏆</div><h4 class="text-2xl font-black text-yellow-300 mt-3">${TEAMS_DATABASE[gameState.cupWinner]?.name||gameState.cupWinner} זכתה בגביע!</h4></div>`:`<div class="space-y-3">${rounds.flatMap((r,ri)=>r.map(m=>`<div class="glass-card rounded-xl p-3 flex justify-between items-center text-xs"><span>${TEAMS_DATABASE[m.home]?.name||m.home} <b class="text-ea-green mx-2">${m.score||'נגד'}</b> ${TEAMS_DATABASE[m.away]?.name||m.away}</span>${!m.played&& (m.home===gameState.teamKey||m.away===gameState.teamKey)?`<button onclick="playCupMatch(${ri})" class="bg-yellow-400 text-slate-950 rounded-lg px-3 py-2 font-bold">שחק משחק גביע</button>`:''}</div>`)).join('')}</div><button onclick="playCupMatch(0)" class="mt-4 bg-yellow-400 text-slate-950 rounded-xl px-4 py-3 font-black text-xs">שחק/קדם בגביע</button>`}<div class="mt-5 border-t border-slate-700 pt-4"><h4 class="font-bold">סופר קאפ — העונה ${gameState.season+1}</h4><p class="text-xs text-slate-400 mt-1">בתחילת העונה הבאה: אלופת הליגה מול מחזיקת גביע המדינה.</p>${gameState.superCup?`<p class="text-yellow-300 font-bold mt-2">${gameState.superCup}</p>`:`<button onclick="playSuperCup()" class="mt-2 bg-ea-green text-slate-950 rounded-lg px-3 py-2 text-xs font-bold" ${!(gameState.leagueChampion&&gameState.cupWinner)?'disabled':''}>שחק סופר קאפ (זמין לאחר קביעת האלופות)</button>`}</div></div>`;}
+        function playCupMatch(roundIndex){if(gameState.cupWinner){alert('הגביע כבר הוכרע.');return;}const teams=Object.keys(TEAMS_DATABASE);let matches=gameState.cupRounds[roundIndex]||[];if(!matches.length){matches=teams.filter(k=>k!==gameState.cupWinner).slice(0,Math.max(2,Math.ceil(teams.length/2))).reduce((a,k,i,arr)=>{if(i%2===0&&arr[i+1])a.push({home:k,away:arr[i+1],played:false,score:null});return a;},[]);gameState.cupRounds.push(matches);}
+          matches.forEach(m=>{if(m.played)return;let a=Math.floor(Math.random()*4),b=Math.floor(Math.random()*4);if(a===b)a++;m.score=`${a} - ${b}`;m.played=true;m.winner=a>b?m.home:m.away;});let winner=matches.find(m=>m.home===gameState.teamKey||m.away===gameState.teamKey);if(winner){const scored=winner.score.split(' - ').map(Number);gameState.newsFeed.unshift(`גביע המדינה: ${winner.score} מול היריבה.`);if(winner.winner!==gameState.teamKey){gameState.cupWinner=winner.winner;gameState.newsFeed.unshift('הודחת מגביע המדינה.');}}
+          const remaining=matches.map(m=>m.winner).filter(Boolean);if(remaining.length===1){gameState.cupWinner=remaining[0];}else if(remaining.length>1){const next=[];for(let i=0;i<remaining.length;i+=2)if(remaining[i+1])next.push({home:remaining[i],away:remaining[i+1],played:false,score:null});if(next.length)gameState.cupRounds.push(next);else gameState.cupWinner=remaining[0];}initGame();}
+        function playSuperCup(){if(!gameState.leagueChampion||!gameState.cupWinner){alert('צריך לסיים עונה ולסיים את גביע המדינה קודם.');return;}const a=gameState.leagueChampion,b=gameState.cupWinner;const winner=Math.random()<.5?a:b;gameState.superCup=`${TEAMS_DATABASE[winner]?.name||winner} זכתה בסופר קאפ אחרי ניצחון על ${TEAMS_DATABASE[winner===a?b:a]?.name|| (winner===a?b:a)}.`;gameState.superCupPlayed=true;gameState.newsFeed.unshift(gameState.superCup);initGame();}
+
+
+        function sellPlayer(playerId) {
+            const idx = gameState.team.roster.findIndex(p => p.id === playerId);
+            if (idx < 0) return;
+            const player = gameState.team.roster[idx];
+            if (!confirm(`למכור את ${player.name} תמורת ${(player.val*0.85/1000).toFixed(0)} אלף אירו?`)) return;
+            const fee = Math.max(50000, Math.round(player.val * 0.85));
+            gameState.team.budget += fee;
+            gameState.team.roster.splice(idx, 1);
+            gameState.starters = gameState.starters.filter(id => id !== player.id);
+            gameState.newsFeed.unshift(`💸 ${player.name} נמכר תמורת ${(fee/1000).toFixed(0)} אלף אירו.`);
+            initGame();
+        }
+
+        function getTransfersHTML() {
+            let availablePlayers = [];
+            for (const [key, t] of Object.entries(TEAMS_DATABASE)) {
+                if (key !== gameState.teamKey) {
+                    t.roster.forEach(p => availablePlayers.push({ ...p, teamName: t.name, type: 'transfer' }));
+                }
+            }
+            ISRAELI_LEGIONNAIRES_POOL.forEach(p => availablePlayers.push({ ...p, teamName: '🇮🇱 לגיונר ישראלי · חו״ל', type: 'legionnaire' }));
+            ISRAEL_FOREIGN_POOL.forEach(p => availablePlayers.push({ ...p, teamName: '🌍 זר ששיחק בישראל · 2021–2026', type: 'foreign' }));
+            gameState.freeAgents.forEach(p => availablePlayers.push({ ...p, teamName: '🇮🇱 שחקן חופשי ישראלי', type: 'free' }));
+
+            return `
+                <div class="glass-panel p-6 rounded-2xl flex-1 flex flex-col">
+                    <h3 class="font-black text-white text-sm mb-4 flex items-center gap-2">
+                        <i class="fas fa-store text-yellow-400"></i> שוק העברות ושחקנים חופשיים
+                    </h3>
+                    <div class="text-xs text-slate-300 mb-3">🇮🇱 לגיונרים ישראלים, שחקנים חופשיים ישראלים וגם זרים ששיחקו בליגה בישראל בשנים 2021–2026. דירוגים ושווי הם הערכות משחק; שחקנים מהמאגר ההיסטורי אינם בהכרח זמינים במציאות.</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto max-h-[600px] flex-1">
+                        ${availablePlayers.map(p => `
+                            <div class="glass-card p-3 rounded-xl flex items-center justify-between text-xs">
+                                <div>
+                                    <div class="font-bold text-white">${p.name} <span class="text-[10px] text-slate-400">(${p.teamName})</span></div>
+                                    ${p.nationality === 'ישראלי' ? '<div class="text-[10px] text-blue-300">🇮🇱 ישראלי</div>' : ''}
+                                    <div class="text-[10px] text-ea-green">עמדה: ${p.pos} \vert{} דירוג: ${p.overall}</div>
+                                </div>
+                                <button onclick='openNegotiation(${JSON.stringify(p)})' class="px-3 py-1.5 bg-yellow-500 text-slate-950 font-bold rounded-lg hover:opacity-90">
+                                    ${p.type === 'free' ? 'החתם (חופשי)' : (p.type === 'foreign' ? 'הצע רכישה (' + (p.val/1000).toFixed(0) + 'k €)' : (p.type === 'legionnaire' ? 'הצע רכישה (' + (p.val/1000).toFixed(0) + 'k €)' : 'קנה (' + (p.val/1000).toFixed(0) + 'k €)'))}
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function openNegotiation(p) {
+            gameState.activeNegotiationPlayer = p;
+            const isFree = p.type === 'free';
+            const cost = isFree ? 0 : (p.val || 500000);
+            const wage = Math.max(1000, Math.round((p.overall || 60) * 180));
+            gameState.negotiationCounter = null;
+            document.getElementById('neg-content').innerHTML = `
+                <div>אתה מנהל משא ומתן עם <b>${p.name}</b> (${p.pos}, אוברול ${p.overall}).</div>
+                <div>מועדון / סטטוס: <b>${p.teamName || (isFree ? 'שחקן חופשי' : 'שוק ההעברות')}</b></div>
+                <div>דמי העברה מבוקשים: <b>${(cost/1000).toFixed(0)}k €</b></div>
+                <div>תקציב המועדון: <b>${(gameState.team.budget/1000000).toFixed(1)}M €</b></div>
+                <div class="text-slate-400">קבע דמי העברה ושכר שבועי. הצעה נמוכה מדי עלולה להידחות או להוביל להצעה נגדית.</div>
+            `;
+            document.getElementById('neg-fee-input').value = cost;
+            document.getElementById('neg-fee-input').min = isFree ? 0 : Math.round(cost * 0.5);
+            document.getElementById('neg-wage-input').value = wage;
+            document.getElementById('neg-feedback').classList.add('hidden');
+            document.getElementById('neg-counter-btn').classList.add('hidden');
+            document.getElementById('neg-accept-btn').textContent = 'שלח הצעה';
+            document.getElementById('neg-accept-btn').onclick = () => submitNegotiationOffer(p, cost, wage);
+            document.getElementById('negotiation-modal').classList.remove('hidden');
+        }
+
+        function submitNegotiationOffer(p, askingFee, askingWage) {
+            const fee = Math.max(0, Number(document.getElementById('neg-fee-input').value) || 0);
+            const wage = Math.max(0, Number(document.getElementById('neg-wage-input').value) || 0);
+            const feedback = document.getElementById('neg-feedback');
+            const isFree = p.type === 'free';
+            if (fee > gameState.team.budget) {
+                feedback.textContent = 'ההצעה חורגת מהתקציב שלך. הורד את דמי ההעברה ונסה שוב.';
+                feedback.classList.remove('hidden');
+                return;
+            }
+            if (wage < Math.round(askingWage * 0.65)) {
+                feedback.textContent = `${p.name} דוחה את השכר שהצעת. הוא דורש לפחות כ-${Math.round(askingWage * 0.9).toLocaleString()} € לשבוע.`;
+                document.getElementById('neg-wage-input').value = Math.round(askingWage * 0.9);
+                feedback.classList.remove('hidden');
+                return;
+            }
+            const acceptableFee = isFree ? fee === 0 : fee >= askingFee * 0.82;
+            const acceptableWage = wage >= askingWage * 0.9;
+            if (acceptableFee && acceptableWage) {
+                feedback.textContent = `ההצעה התקבלה! ${p.name} והקבוצה מסכימים לתנאים.`;
+                feedback.classList.remove('hidden');
+                document.getElementById('neg-accept-btn').textContent = 'סגור עסקה';
+                document.getElementById('neg-accept-btn').onclick = () => executeSigning(p, fee, wage);
+                return;
+            }
+            const counterFee = isFree ? 0 : Math.min(askingFee, Math.max(fee, Math.round(askingFee * 0.9)));
+            const counterWage = Math.max(wage, Math.round(askingWage * 1.08));
+            gameState.negotiationCounter = { fee: counterFee, wage: counterWage };
+            feedback.innerHTML = `הצעה ראשונית לא התקבלה. <b>${p.name}</b> מציע נגדית: דמי העברה <b>${(counterFee/1000).toFixed(0)}k €</b>, שכר שבועי <b>${counterWage.toLocaleString()} €</b>. אפשר לקבל את ההצעה הנגדית.`;
+            feedback.classList.remove('hidden');
+            document.getElementById('neg-fee-input').value = counterFee;
+            document.getElementById('neg-wage-input').value = counterWage;
+            document.getElementById('neg-counter-btn').classList.remove('hidden');
+            document.getElementById('neg-counter-btn').onclick = () => {
+                if (counterFee > gameState.team.budget) {
+                    alert('אין מספיק תקציב לקבלת ההצעה הנגדית.');
+                    return;
+                }
+                executeSigning(p, counterFee, counterWage);
+            };
+        }
+
+        function closeNegotiation() {
+            document.getElementById('negotiation-modal').classList.add('hidden');
+        }
+
+        function executeSigning(p, cost, wage = 0) {
+            if (gameState.team.budget < cost) {
+                alert('אין מספיק תקציב להשלמת העסקה!');
+                closeNegotiation();
+                return;
+            }
+            gameState.team.budget -= cost;
+
+            if (p.type === 'free') {
+                gameState.freeAgents = gameState.freeAgents.filter(fa => fa.id !== p.id);
+            } else if (p.type === 'legionnaire') {
+                const idx = ISRAELI_LEGIONNAIRES_POOL.findIndex(pl => pl.id === p.id);
+                if (idx !== -1) ISRAELI_LEGIONNAIRES_POOL.splice(idx, 1);
+            } else if (p.type === 'foreign') {
+                const idx = ISRAEL_FOREIGN_POOL.findIndex(pl => pl.id === p.id);
+                if (idx !== -1) ISRAEL_FOREIGN_POOL.splice(idx, 1);
+            } else {
+                for (const [key, t] of Object.entries(TEAMS_DATABASE)) {
+                    const idx = t.roster.findIndex(pl => pl.id === p.id);
+                    if (idx !== -1) { t.roster.splice(idx, 1); break; }
+                }
+            }
+
+            gameState.team.roster.push({ id: p.id, name: p.name, pos: p.pos, overall: p.overall, val: p.val || 500000, fatigue: 0, injured: 0 });
+            if(gameState.starters.length<11)gameState.starters.push(p.id);
+            gameState.newsFeed.unshift(`רשמי: ${gameState.team.name} החתימה את ${p.name} תמורת ${(cost/1000).toFixed(0)} אלף אירו, בשכר שבועי ${(wage||0).toLocaleString()} אירו.`);
+            alert('המשא ומתן צלח והשחקן חתם בקבוצה!');
+            closeNegotiation();
+            initGame();
+        }
+
+        let liveMatch = null;
+        function playMatch() {
+            if (gameState.currentGameweek >= gameState.gameweeks.length) return;
+            const matches = gameState.gameweeks[gameState.currentGameweek] || [];
+            const fixture = matches.find(m => m.home === gameState.teamKey || m.away === gameState.teamKey);
+            if (!fixture) { finishMatchResults(); return; }
+            const isHome = fixture.home === gameState.teamKey;
+            const oppKey = isHome ? fixture.away : fixture.home;
+            const opponent = TEAMS_DATABASE[oppKey];
+            liveMatch = {
+                fixture, isHome, oppKey, opponent, minute: 0, homeGoals: 0, awayGoals: 0,
+                userGoals: 0, opponentGoals: 0, shotsHome: 0, shotsAway: 0, targetHome: 0, targetAway: 0,
+                cornersHome: 0, cornersAway: 0, possession: 50, paused: false, speed: 1, interval: null,
+                commentary: [], subs: 0, selected: null, events: [], ended: false
+            };
+            const homeKey = fixture.home, awayKey = fixture.away;
+            document.getElementById('live-home-name').textContent = TEAMS_DATABASE[homeKey].name;
+            document.getElementById('live-away-name').textContent = TEAMS_DATABASE[awayKey].name;
+            document.getElementById('live-home-badge').src = TEAMS_DATABASE[homeKey].badge;
+            document.getElementById('live-away-badge').src = TEAMS_DATABASE[awayKey].badge;
+            document.getElementById('live-commentary').innerHTML = '';
+            document.getElementById('live-finish-btn').disabled = true;
+            document.getElementById('live-status').textContent = 'המחצית הראשונה';
+            document.getElementById('live-match-modal').classList.remove('hidden');
+            addLiveCommentary('שריקת פתיחה! הכדור יוצא לדרך באצטדיון.');
+            renderLivePitch();
+            renderLiveSubs();
+            updateLiveScoreboard();
+            liveMatch.interval = setInterval(liveTick, 850);
+        }
+        function addLiveCommentary(message, kind='normal') {
+            if (!liveMatch) return;
+            liveMatch.commentary.unshift({minute: liveMatch.minute, message, kind});
+            const box = document.getElementById('live-commentary');
+            if (box) box.innerHTML = liveMatch.commentary.slice(0,18).map(e=>`<div class="flex gap-2 border-b border-white/5 pb-2 ${e.kind==='goal'?'text-ea-green font-black':e.kind==='danger'?'text-yellow-200':'text-slate-300'}"><span class="text-slate-500 shrink-0 font-bold">${e.minute}'</span><span>${e.message}</span></div>`).join('');
+        }
+        function liveTick() {
+            if (!liveMatch || liveMatch.paused || liveMatch.ended) return;
+            liveMatch.minute = Math.min(90, liveMatch.minute + liveMatch.speed);
+            const tacticBoost = ({pressing:1.4,attack:2,counter:1.1,possession:.8,defensive:-.2,balanced:0})[gameState.tacticalStyle]||0;
+            const lm = liveMatch, userPower = gameState.team.rating + (gameState.morale-50)/10 + tacticBoost;
+            const homePower = lm.isHome ? userPower+1 : lm.opponent.rating;
+            const awayPower = lm.isHome ? lm.opponent.rating : userPower;
+            const homeChance = 0.20 + Math.max(0,homePower-awayPower)*0.002;
+            const awayChance = 0.20 + Math.max(0,awayPower-homePower)*0.002;
+            const attack = Math.random();
+            lm.possession = Math.max(34,Math.min(66,Math.round(50+(homePower-awayPower)*1.2+(Math.random()*12-6))));
+            if (attack < 0.24) {
+                const isHomeAttack = Math.random() < lm.possession/100;
+                const teamName = isHomeAttack ? TEAMS_DATABASE[lm.fixture.home].name : TEAMS_DATABASE[lm.fixture.away].name;
+                if (isHomeAttack) lm.shotsHome++; else lm.shotsAway++;
+                const isUserAttack = isHomeAttack === lm.isHome;
+                const chance = isHomeAttack ? homeChance : awayChance;
+                if (Math.random() < Math.min(.72, chance*4.2)) {
+                    if (isHomeAttack) lm.targetHome++; else lm.targetAway++;
+                    if (Math.random() < 0.24 + Math.min(.12,Math.max(-.06,(isHomeAttack?homePower-awayPower:awayPower-homePower)*.006))) {
+                        if (isHomeAttack) lm.homeGoals++; else lm.awayGoals++;
+                        if (isUserAttack) lm.userGoals++; else lm.opponentGoals++;
+                        addLiveCommentary(`⚽ גול!!! ${teamName} כובשת! ביצוע נהדר מול השער.`, 'goal');
+                    } else addLiveCommentary(`בעיטה למסגרת של ${teamName} — השוער הודף!`, 'danger');
+                } else if (Math.random()<.22) {
+                    if (isHomeAttack) lm.cornersHome++; else lm.cornersAway++;
+                    addLiveCommentary(`התקפה מסוכנת של ${teamName}, הכדור יוצא לקרן.`);
+                } else if (Math.random()<.18) addLiveCommentary(`${teamName} מנסה לצאת להתקפה מהירה.`);
+            } else if (attack < 0.17) {
+                addLiveCommentary(Math.random()<.5?'מאבק חזק במרכז המגרש, השופט נותן יתרון.':'הקבוצות מסדרות מחדש את המערכים.');
+            }
+            if (lm.minute === 45) { addLiveCommentary(`שריקת מחצית! ${lm.homeGoals}-${lm.awayGoals} בלוח התוצאות.`); document.getElementById('live-status').textContent='מחצית'; }
+            if (lm.minute === 46) { addLiveCommentary('המחצית השנייה יוצאת לדרך.'); document.getElementById('live-status').textContent='מחצית שנייה'; }
+            if (lm.minute === 90) {
+                addLiveCommentary(`שריקת הסיום! ${lm.homeGoals}-${lm.awayGoals}.`, 'goal');
+                lm.ended=true; clearInterval(lm.interval);
+                document.getElementById('live-finish-btn').disabled=false;
+                document.getElementById('live-bottom-status').textContent='המשחק הסתיים — לחץ כדי לעדכן את טבלת הליגה.';
+                document.getElementById('live-status').textContent='סיום';
+            }
+            updateLiveScoreboard();
+            if (lm.minute%3===0) renderLivePitch();
+        }
+        function updateLiveScoreboard() {
+            if (!liveMatch) return;
+            const lm=liveMatch;
+            document.getElementById('live-clock').textContent=String(Math.floor(lm.minute)).padStart(2,'0')+':00';
+            document.getElementById('live-home-score').textContent=lm.homeGoals;
+            document.getElementById('live-away-score').textContent=lm.awayGoals;
+            document.getElementById('live-possession').textContent=`${lm.possession}% - ${100-lm.possession}%`;
+            document.getElementById('live-possession-bar').style.width=lm.possession+'%';
+            document.getElementById('live-shots').textContent=`${lm.shotsHome} - ${lm.shotsAway}`;
+            document.getElementById('live-on-target').textContent=`${lm.targetHome} - ${lm.targetAway}`;
+            document.getElementById('live-corners').textContent=`${lm.cornersHome} - ${lm.cornersAway}`;
+            document.getElementById('live-pause-btn').textContent=lm.paused?'▶ המשך':'⏸ השהה';
+            document.getElementById('live-speed-btn').textContent='מהירות ×'+lm.speed;
+        }
+        function renderLivePitch() {
+            if (!liveMatch) return;
+            const lm=liveMatch, homeKey=lm.fixture.home, awayKey=lm.fixture.away;
+            const homePlayers = lm.isHome ? gameState.starters.map(id=>gameState.team.roster.find(p=>p.id===id)).filter(Boolean) : chooseStartingXI(TEAMS_DATABASE[homeKey].roster||[]).map(id=>(TEAMS_DATABASE[homeKey].roster||[]).find(p=>p.id===id)).filter(Boolean);
+            const awayPlayers = !lm.isHome ? gameState.starters.map(id=>gameState.team.roster.find(p=>p.id===id)).filter(Boolean) : chooseStartingXI(TEAMS_DATABASE[awayKey].roster||[]).map(id=>(TEAMS_DATABASE[awayKey].roster||[]).find(p=>p.id===id)).filter(Boolean);
+            const coords = [[50,91],[20,76],[40,78],[60,78],[80,76],[28,57],[50,60],[72,57],[24,31],[50,27],[76,31]];
+            const html = [...homePlayers.slice(0,11).map((p,i)=>({p,i,home:true})),...awayPlayers.slice(0,11).map((p,i)=>({p,i,home:false}))].map(({p,i,home})=>{
+                const [x,y]=coords[i]||[50,50], yy=home?y:100-y;
+                return `<button class="live-player ${home?'home':'away'} ${lm.selected===p.id?'selected':''}" style="left:${x}%;top:${yy}%" ${home?`onclick="liveSelectPlayer('${p.id}')"`:''} title="${p.name} ${p.overall}"><span>${p.overall}</span><span style="max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name.split(' ').slice(-1)[0]}</span></button>`;
+            }).join('');
+            document.getElementById('live-pitch-players').innerHTML=html;
+        }
+        function renderLiveSubs() {
+            if (!liveMatch) return;
+            const starters=gameState.starters.map(id=>gameState.team.roster.find(p=>p.id===id)).filter(Boolean);
+            const bench=gameState.team.roster.filter(p=>!gameState.starters.includes(p.id));
+            document.getElementById('live-sub-list').innerHTML=`<div class="text-[10px] text-slate-400 mb-2">על המגרש</div>${starters.map(p=>`<button onclick="liveSelectPlayer('${p.id}')" class="w-full flex justify-between p-2 rounded-lg border ${liveMatch.selected===p.id?'border-yellow-300 bg-yellow-300/10':'border-slate-700 bg-slate-900/50'} text-xs mb-1"><span>${p.name} · ${posName(p.pos)}</span><b>${p.overall}</b></button>`).join('')}<div class="text-[10px] text-slate-400 mt-3 mb-2">ספסל (${bench.length})</div>${bench.map(p=>`<button onclick="liveChooseSub('${p.id}')" ${p.injured?'disabled':''} class="w-full flex justify-between p-2 rounded-lg border border-slate-700 bg-slate-900/50 text-xs mb-1 ${p.injured?'opacity-40':''}"><span>${p.name} · ${posName(p.pos)}${p.injured?' · פצוע':''}</span><b>${p.overall}</b></button>`).join('')}`;
+            document.getElementById('live-sub-hint').textContent=liveMatch.subs>=5?'נוצלו כל 5 החילופים.':liveMatch.selected?'נבחר: '+(gameState.team.roster.find(p=>p.id===liveMatch.selected)||{}).name+' — עכשיו בחר מחליף.':'בחר שחקן הרכב ואז שחקן ספסל.';
+        }
+        function liveSelectPlayer(id) {
+            if (!liveMatch || liveMatch.ended) return;
+            liveMatch.selected=liveMatch.selected===id?null:id;
+            renderLivePitch(); renderLiveSubs();
+        }
+        function liveChooseSub(id) {
+            if (!liveMatch || liveMatch.ended || liveMatch.subs>=5) { if(liveMatch&&liveMatch.subs>=5) alert('אפשר לבצע עד 5 חילופים.'); return; }
+            if (!liveMatch.selected) { alert('בחר קודם שחקן מההרכב.'); return; }
+            const incoming=gameState.team.roster.find(p=>p.id===id), outgoing=gameState.team.roster.find(p=>p.id===liveMatch.selected);
+            if (!incoming||!outgoing||incoming.injured||gameState.starters.includes(id)) return;
+            const idx=gameState.starters.indexOf(outgoing.id); if(idx<0)return;
+            gameState.starters[idx]=incoming.id; liveMatch.subs++; liveMatch.selected=null;
+            addLiveCommentary(`חילוף (${liveMatch.subs}/5): ${incoming.name} נכנס במקום ${outgoing.name}.`);
+            renderLivePitch(); renderLiveSubs();
+        }
+        function toggleLivePause() { if(!liveMatch||liveMatch.ended)return; liveMatch.paused=!liveMatch.paused; updateLiveScoreboard(); }
+        function changeLiveSpeed() { if(!liveMatch||liveMatch.ended)return; liveMatch.speed=liveMatch.speed===1?2:liveMatch.speed===2?4:1; updateLiveScoreboard(); }
+        function finishLiveMatch() {
+            if (!liveMatch || !liveMatch.ended) return;
+            clearInterval(liveMatch.interval);
+            gameState.liveResult={user:liveMatch.userGoals,opponent:liveMatch.opponentGoals};
+            document.getElementById('live-match-modal').classList.add('hidden');
+            liveMatch=null;
+            finishMatchResults();
+            gameState.liveResult=null;
+        }
+
+
+        function recordScorers(teamKey, goals, isUserTeam=false) {
+          const roster = isUserTeam ? gameState.team.roster : (TEAMS_DATABASE[teamKey]?.roster || []);
+          if (!roster.length || goals<=0) return;
+          for(let i=0;i<goals;i++){
+            const pool=[...roster].filter(p=>!p.injured);
+            if(!pool.length) break;
+            const weighted=[]; pool.forEach(p=>{const weight=p.pos==='FWD'?5:p.pos==='MID'?3:p.pos==='DEF'?1:0;for(let n=0;n<weight;n++)weighted.push(p);});
+            const scorer=(weighted.length?weighted:pool)[Math.floor(Math.random()*(weighted.length?weighted:pool).length)];
+            let row=gameState.goalScorers.find(x=>x.id===scorer.id && x.teamKey===teamKey);
+            if(!row){row={id:scorer.id,name:scorer.name,teamKey,teamName:TEAMS_DATABASE[teamKey]?.name || gameState.team.name,goals:0};gameState.goalScorers.push(row);}
+            row.goals++;
+          }
+        }
+
+        function finishMatchResults() {
+            if (gameState.currentGameweek >= gameState.gameweeks.length) return;
+
+            gameState.team.roster.forEach(p => {
+                if (p.injured > 0) {
+                    p.injured--;
+                } else {
+                    p.fatigue = Math.max(0, p.fatigue + (gameState.starters.includes(p.id) ? Math.floor(Math.random() * 20) + 15 : -20));
+                    if (p.fatigue >= 80 && Math.random() < 0.4) {
+                        p.injured = Math.floor(Math.random() * 3) + 1;
+                        gameState.newsFeed.unshift(`פציעה: ${p.name} נפצע וייעדר ${p.injured} משחקים.`);
+                    }
+                }
+            });
+
+            let currentGw = gameState.gameweeks[gameState.currentGameweek];
+            let userMatchGoals = { for: 0, against: 0 };
+
+            currentGw.forEach(m => {
+                const isUserMatch = (m.home === gameState.teamKey || m.away === gameState.teamKey);
+                let homeGoals, awayGoals;
+
+                if (isUserMatch) {
+                    const isHome = m.home === gameState.teamKey;
+                    const oppKey = isHome ? m.away : m.home;
+                    const opponent = TEAMS_DATABASE[oppKey];
+
+                    const tacticBoost = ({pressing:1.2,attack:1.8,counter:1,possession:.7,defensive:-.2,balanced:0})[gameState.tacticalStyle]||0;
+                    const avgFatigue = gameState.team.roster.filter(p=>gameState.starters.includes(p.id)).reduce((n,p)=>n+(p.fatigue||0),0)/Math.max(1,gameState.starters.length);
+                    const activeRating = gameState.team.rating + (gameState.morale - 50) / 10 + tacticBoost - avgFatigue/35;
+                    let userPower = activeRating + (Math.random() * 6 - 3);
+                    let oppPower = opponent.rating + (Math.random() * 6 - 3);
+
+                    if (isHome) userPower += 1; else oppPower += 1;
+
+                    const goalRoll = power => { const lambda = Math.max(0.55, Math.min(2.35, 1.35 + (power - 75) * 0.055)); let goals=0; for(let i=0;i<5;i++) if(Math.random()<lambda/5) goals++; return goals; };
+                    let uGoals = goalRoll(userPower);
+                    let oGoals = goalRoll(oppPower);
+                    if (gameState.liveResult) { uGoals = gameState.liveResult.user; oGoals = gameState.liveResult.opponent; }
+
+                    homeGoals = isHome ? uGoals : oGoals;
+                    awayGoals = isHome ? oGoals : uGoals;
+
+                    userMatchGoals.for = isHome ? homeGoals : awayGoals;
+                    userMatchGoals.against = isHome ? awayGoals : homeGoals;
+                } else {
+                    const homeTeam = TEAMS_DATABASE[m.home];
+                    const awayTeam = TEAMS_DATABASE[m.away];
+                    let hPow = homeTeam.rating + (Math.random() * 6 - 3) + 1;
+                    let aPow = awayTeam.rating + (Math.random() * 6 - 3);
+
+                    const rollGoals = power => { const lambda=Math.max(.45,Math.min(2.6,1.2+(power-75)*.055)); let g=0; for(let i=0;i<6;i++) if(Math.random()<lambda/6)g++; return g; };
+                    homeGoals = rollGoals(hPow);
+                    awayGoals = rollGoals(aPow);
+                }
+
+                m.played = true;
+                m.score = `${homeGoals} - ${awayGoals}`;
+                recordScorers(m.home, homeGoals, m.home === gameState.teamKey);
+                recordScorers(m.away, awayGoals, m.away === gameState.teamKey);
+
+                const homeRow = gameState.table.find(r => r.key === m.home);
+                const awayRow = gameState.table.find(r => r.key === m.away);
+
+                homeRow.p++; awayRow.p++;
+                homeRow.gf += homeGoals; homeRow.ga += awayGoals;
+                awayRow.gf += awayGoals; awayRow.ga += homeGoals;
+
+                if (homeGoals > awayGoals) {
+                    homeRow.pts += 3; homeRow.w++; awayRow.l++;
+                } else if (homeGoals < awayGoals) {
+                    awayRow.pts += 3; awayRow.w++; homeRow.l++;
+                } else {
+                    homeRow.pts += 1; awayRow.pts += 1;
+                    homeRow.d++; awayRow.d++;
+                }
+            });
+
+            gameState.currentGameweek++;
+            gameState.team.budget += 180000; gameState.totalIncome=(gameState.totalIncome||0)+180000;
+            gameState.totalExpenses=(gameState.totalExpenses||0)+gameState.team.roster.reduce((n,p)=>n+(p.wage||Math.round(p.overall*180)),0);
+            const won=userMatchGoals.for>userMatchGoals.against, lost=userMatchGoals.for<userMatchGoals.against;
+            gameState.fanApproval=Math.max(0,Math.min(100,gameState.fanApproval+(won?4:lost?-5:0)));
+            gameState.boardConfidence=Math.max(0,Math.min(100,gameState.boardConfidence+(won?2:lost?-3:0)));
+            if (Math.random() < 0.72) generatePlayerMessage();
+            maybeGenerateTransferOffer();
+
+            if (gameState.currentGameweek % 3 === 0) {
+                gameState.team.roster.forEach(p => {
+                    if (p.overall < 84 && Math.random() < 0.5) {
+                        p.overall += 1;
+                        gameState.newsFeed.unshift(`התפתחות שחקן: ${p.name} השתפר ועלה לדירוג ${p.overall}!`);
+                    }
+                });
+            }
+
+            triggerPressConference(userMatchGoals.for, userMatchGoals.against);
+        }
+
+        function triggerPressConference(userGoals, oppGoals) {
+            const modal = document.getElementById('press-modal');
+            const qEl = document.getElementById('press-question');
+            const optsEl = document.getElementById('press-options');
+
+            let qText = "";
+            let options = [];
+
+            if (userGoals > oppGoals) {
+                qText = `ניצחון מרשים למאמן ולשחקנים במחזור הזה! איך אתה מסביר את היכולת הנהדרת?`;
+                options = [
+                    { text: "השחקנים יישמו את תוכנית המשחק בצורה מושלמת. מוראל בשיא!", moraleChange: +10 },
+                    { text: "היו לנו גם רגעים פחות טובים, נמשיך לעבוד קשה.", moraleChange: +3 }
+                ];
+            } else if (userGoals === oppGoals) {
+                qText = `תוצאת תיקו במחזור הזה. מה דעתך על התוצאה מול יריבתך?`;
+                options = [
+                    { text: "שלטנו במשחק אך לא ניצלנו מצבים, נתקן בהמשך.", moraleChange: 0 },
+                    { text: "אני לא מרוצה מהגישה של חלק מהשחקנים במגרש.", moraleChange: -8 }
+                ];
+            } else {
+                qText = `הפסד כואב במחזור הנוכחי. האם המשרה שלך בסיכון בעקבות המצב בטבלה?`;
+                options = [
+                    { text: "אני לוקח על עצמי אחריות מלאה ונחזור חזקים יותר.", moraleChange: -3 },
+                    { text: "השופטים קיבלו החלטות מקפחות שהרסו את המשחק.", moraleChange: -10 }
+                ];
+            }
+
+            qEl.innerText = qText;
+            optsEl.innerHTML = options.map((opt, idx) => `
+                <button onclick="applyPressResult(${opt.moraleChange})" class="w-full text-right p-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-bold text-slate-200 transition">
+                    ${opt.text} <span class="text-ea-green float-left text-[10px]">(השפעה על מוראל: ${opt.moraleChange >= 0 ? '+' + opt.moraleChange : opt.moraleChange}%)</span>
+                </button>
+            `).join('');
+
+            modal.classList.remove('hidden');
+        }
+
+        function applyPressResult(change) {
+            gameState.morale = Math.max(0, Math.min(100, gameState.morale + change));
+            document.getElementById('press-modal').classList.add('hidden');
+            initGame();
+        }
+
+        function showSeasonOver() {
+            const topTeam = gameState.table.sort((a,b) => b.pts - a.pts)[0];
+            const userRank = gameState.table.findIndex(r => r.key === gameState.teamKey) + 1;
+            gameState.leagueChampion = topTeam.key;
+            let boardMsg = userRank <= 2 ? "ההנהלה מרוצה מאוד! עמדת ביעד וזכית במענק של 5 מיליון אירו!" : "ההנהלה מסכמת את העונה וממשיכה לבנות את הסגל.";
+            if (userRank <= 2) gameState.team.budget += 5000000;
+
+            document.getElementById('champion-announcement').innerText = `אלופת העונה היא ${topTeam.name} עם ${topTeam.pts} נקודות! (סיימת במקום ${userRank})`;
+            document.getElementById('board-review').innerText = boardMsg;
+            document.getElementById('season-over-modal').classList.remove('hidden');
+            if(topTeam.key===gameState.teamKey){document.getElementById('trophy-message').innerText=`${gameState.team.name} זכתה באליפות! קפטן הקבוצה מניף את הצלחת מול האוהדים.`;document.getElementById('trophy-modal').classList.remove('hidden');}
+        }
+
+        function resetForNextSeason() {
+            document.getElementById('season-over-modal').classList.add('hidden');
+            gameState.currentGameweek = 0;
+            gameState.season++;
+            gameState.team.roster.forEach(p=>{p.fatigue=0;p.injured=Math.max(0,p.injured-1)});
+            gameState.starters=chooseStartingXI(gameState.team.roster);
+            gameState.superCup=null;gameState.superCupPlayed=false;
+            generateLeagueSchedule();
+            initGame();
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
