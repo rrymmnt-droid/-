@@ -1,3 +1,8 @@
+
+<script id="career-upgrade-autosave">
+window.addEventListener('beforeunload',()=>{try{if(typeof saveCareerNow==='function')saveCareerNow()}catch(e){}});
+window.addEventListener('pagehide',()=>{try{if(typeof saveCareerNow==='function')saveCareerNow()}catch(e){}});
+</script>
 <!DOCTYPE html>
 <html lang="he" dir="rtl" class="dark">
 <head>
@@ -653,10 +658,51 @@
           const roster=NATIONAL_PLAYER_NAMES.map((x,i)=>({id:`nl_${idx}_${i}`,name:x[0],pos:x[1],overall: i<2?62+((idx+i)%5):58+((idx*3+i*2)%13),val:70000+((idx+i*7)%10)*18000,fatigue:0,injured:0,nationality:'ישראלי',teamName:name,rosterLabel:'סגל דמו'}));
           TEAMS_DATABASE[key]={name,budget:1800000+(idx%5)*250000,rating:61+(idx%6),roster,league:'national',isDemoRoster:true};
         });
-        const PREMIER_LEAGUE_TEAM_KEYS = Object.keys(TEAMS_DATABASE).filter(k=>!NATIONAL_LEAGUE_TEAMS[k]);
+
+        // Three additional playable Israeli divisions. Ratings and squads are fictional game data.
+        const LOWER_DIVISION_TEAMS = {
+          ligaA: {
+            'Hapoel Kfar Saba A': 'הפועל כפר סבא 1928', 'Hapoel Marmorek A': 'הפועל מרמורק',
+            'Shimshon Tel Aviv A': 'שמשון תל אביב', 'Maccabi Kabilio Jaffa A': 'מכבי קביליו יפו',
+            'Hapoel Herzliya A': 'הפועל הרצליה', 'Ironi Modi’in A': 'עירוני מודיעין',
+            'Maccabi Shaarayim A': 'מכבי שעריים', 'Hapoel Bikat Hayarden A': 'הפועל בקעת הירדן'
+          },
+          ligaB: {
+            'Beitar Kfar Saba B': 'בית״ר כפר סבא', 'Hapoel Azor B': 'הפועל אזור',
+            'Maccabi Ironi Kiryat Malakhi B': 'מכבי עירוני קריית מלאכי', 'Hapoel Lod B': 'הפועל לוד',
+            'Maccabi Neve Shaanan B': 'מכבי נווה שאנן', 'Hapoel Tirat Carmel B': 'הפועל טירת כרמל',
+            'Hapoel Daliyat al-Karmel B': 'הפועל דלית אל כרמל', 'Ironi Beit Shemesh B': 'עירוני בית שמש'
+          },
+          ligaG: {
+            'Maccabi Or Yehuda G': 'מכבי אור יהודה', 'Hapoel Ramat Israel G': 'הפועל רמת ישראל',
+            'Sporting Tel Aviv G': 'ספורטינג תל אביב', 'Hapoel Kiryat Ono G': 'הפועל קריית אונו',
+            'Maccabi Be’er Sheva G': 'מכבי באר שבע', 'Hapoel Yeruham G': 'הפועל ירוחם',
+            'Maccabi Ahva Fureidis G': 'מכבי אחווה פרדיס', 'Hapoel Tuba G': 'הפועל טובא'
+          }
+        };
+        const LOWER_DIVISION_TEAM_KEYS = {};
+        Object.entries(LOWER_DIVISION_TEAMS).forEach(([league, clubs], tierIndex) => {
+          LOWER_DIVISION_TEAM_KEYS[league] = Object.keys(clubs);
+          Object.entries(clubs).forEach(([key, name], idx) => {
+            const roster = NATIONAL_PLAYER_NAMES.map((x, i) => ({
+              id: `${league}_${idx}_${i}`, name: x[0], pos: x[1],
+              overall: Math.max(42, (tierIndex===0?56:tierIndex===1?51:46) + ((idx*3+i*2)%9)),
+              val: 25000 + ((idx+i*3)%8)*9000, fatigue: 0, injured: 0,
+              nationality: 'ישראלי', teamName: name, rosterLabel: 'סגל דמו'
+            }));
+            TEAMS_DATABASE[key] = {name, budget: 350000+(tierIndex===0?idx%4*50000:tierIndex===1?idx%3*25000:0),
+              rating: (tierIndex===0?55:tierIndex===1?50:45)+(idx%4), roster, league, isDemoRoster:true};
+          });
+        });
+        const ALL_LOWER_DIVISION_KEYS = Object.values(LOWER_DIVISION_TEAM_KEYS).flat();
+        const PREMIER_LEAGUE_TEAM_KEYS = Object.keys(TEAMS_DATABASE).filter(k=>!NATIONAL_LEAGUE_TEAMS[k]&&!ALL_LOWER_DIVISION_KEYS.includes(k));
         const NATIONAL_LEAGUE_TEAM_KEYS = Object.keys(NATIONAL_LEAGUE_TEAMS);
         let selectedCareerLeague = 'premier';
-        function getCareerLeagueTeamKeys(){return selectedCareerLeague==='national'?NATIONAL_LEAGUE_TEAM_KEYS:PREMIER_LEAGUE_TEAM_KEYS;}
+        function getCareerLeagueTeamKeys(){
+          if(selectedCareerLeague==='national') return NATIONAL_LEAGUE_TEAM_KEYS;
+          if(LOWER_DIVISION_TEAM_KEYS[selectedCareerLeague]) return LOWER_DIVISION_TEAM_KEYS[selectedCareerLeague];
+          return PREMIER_LEAGUE_TEAM_KEYS;
+        }
 
         // מאגר שחקנים חופשיים ישראלים בתוך המשחק (דירוגים ושווי הם לצורכי משחק, לא נתוני שוק רשמיים)
         const FREE_AGENTS_POOL = [
@@ -768,7 +814,7 @@
                     <div class="space-y-2">
                         <span class="px-3 py-1 bg-ea-green/20 text-ea-green text-xs font-bold rounded-full">EA SPORTS FC 27 - PRO</span>
                         <h1 class="text-3xl font-black text-white">בחר קבוצה לקריירה מלאה</h1>
-                        <div class="flex justify-center gap-2 mt-4"><button onclick="setCareerLeague('premier')" class="px-4 py-2 rounded-xl font-bold text-xs ${selectedCareerLeague==='premier'?'bg-ea-green text-slate-950':'bg-slate-800 text-white'}">ליגת העל</button><button onclick="setCareerLeague('national')" class="px-4 py-2 rounded-xl font-bold text-xs ${selectedCareerLeague==='national'?'bg-ea-green text-slate-950':'bg-slate-800 text-white'}">הליגה הלאומית</button></div>
+                        <div class="flex flex-wrap justify-center gap-2 mt-4"><button onclick="setCareerLeague('premier')" class="px-3 py-2 rounded-xl font-bold text-xs ${selectedCareerLeague==='premier'?'bg-ea-green text-slate-950':'bg-slate-800 text-white'}">ליגת העל</button><button onclick="setCareerLeague('national')" class="px-3 py-2 rounded-xl font-bold text-xs ${selectedCareerLeague==='national'?'bg-ea-green text-slate-950':'bg-slate-800 text-white'}">לאומית</button><button onclick="setCareerLeague('ligaA')" class="px-3 py-2 rounded-xl font-bold text-xs ${selectedCareerLeague==='ligaA'?'bg-ea-green text-slate-950':'bg-slate-800 text-white'}">ליגה א׳</button><button onclick="setCareerLeague('ligaB')" class="px-3 py-2 rounded-xl font-bold text-xs ${selectedCareerLeague==='ligaB'?'bg-ea-green text-slate-950':'bg-slate-800 text-white'}">ליגה ב׳</button><button onclick="setCareerLeague('ligaG')" class="px-3 py-2 rounded-xl font-bold text-xs ${selectedCareerLeague==='ligaG'?'bg-ea-green text-slate-950':'bg-slate-800 text-white'}">ליגה ג׳</button></div>
                         <p class="text-xs text-slate-400">מערך טקטי, חילופים, מחלקת נוער, גביע המדינה וטקס אליפות</p><p class="text-[10px] text-amber-300 mt-2">נתוני הקבוצות מבוססים על מקורות ספורט; דירוגים וסגלי דמו בליגה הלאומית הם הערכות משחק ולא נתונים רשמיים.</p>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -798,7 +844,10 @@
         }
 
         function selectTeam(key) {
-            selectedCareerLeague=NATIONAL_LEAGUE_TEAM_KEYS.includes(key)?'national':'premier';
+            selectedCareerLeague = NATIONAL_LEAGUE_TEAM_KEYS.includes(key) ? 'national' :
+              (LOWER_DIVISION_TEAM_KEYS.ligaA.includes(key) ? 'ligaA' :
+              LOWER_DIVISION_TEAM_KEYS.ligaB.includes(key) ? 'ligaB' :
+              LOWER_DIVISION_TEAM_KEYS.ligaG.includes(key) ? 'ligaG' : 'premier');
             gameState.league=selectedCareerLeague;
             gameState.teamKey = key;
             gameState.team = JSON.parse(JSON.stringify(TEAMS_DATABASE[key]));
@@ -975,7 +1024,7 @@
         function recoverSquad(){gameState.team.roster.forEach(p=>p.fatigue=Math.max(0,(p.fatigue||0)-25));gameState.morale=Math.max(0,gameState.morale-1);gameState.newsFeed.unshift('יום התאוששות: העייפות ירדה בסגל.');initGame();}
         function holdPressConference(topic){const qs={ambition:['היעד הוא להיאבק על צמרת הטבלה.','אנחנו מתמקדים במשחק הקרוב ולא מבטיחים הבטחות.'],player:['אני מאמין בשחקנים שלי ומגן עליהם.','כל שחקן צריך להוכיח את עצמו באימונים.'],fans:['האוהדים הם הכוח שלנו ואנחנו רוצים לשמח אותם.','אנחנו מבינים את הביקורת ונענה על המגרש.'],transfer:['אנחנו עובדים בשקט ונחתים רק את השחקנים הנכונים.','אף שחקן לא יעזוב במחיר שלא מתאים למועדון.']};const answers=qs[topic]||qs.ambition;const choice=prompt(`מסיבת עיתונאים — ${({ambition:'מטרות העונה',player:'הגנה על שחקן',fans:'מסר לאוהדים',transfer:'שמועות העברות'})[topic]}\n1. ${answers[0]}\n2. ${answers[1]}\n\nהקלד 1 או 2:`);if(choice!=='1'&&choice!=='2')return;const positive=choice==='1';const delta=positive?5:1;gameState.morale=Math.max(0,Math.min(100,gameState.morale+delta));gameState.fanApproval=Math.max(0,Math.min(100,gameState.fanApproval+(topic==='fans'&&positive?8:positive?3:-2)));gameState.boardConfidence=Math.max(0,Math.min(100,gameState.boardConfidence+(topic==='ambition'&&positive?4:positive?2:-3)));const line=`מסיבת עיתונאים: ${answers[Number(choice)-1]}`;gameState.newsFeed.unshift(line);alert(`${line}\nמורל ${positive?'+':''}${delta} · אישור אוהדים ${gameState.fanApproval}% · אמון הנהלה ${gameState.boardConfidence}%`);initGame();}
         function sellListedPlayer(){const p=gameState.team.roster.find(x=>x.transferListed);if(!p){alert('אין שחקנים ברשימת ההעברות. אפשר לסמן שחקן דרך תיבת ההודעות שלו.');return;}const fee=Math.round((p.val||250000)*(.75+Math.random()*.5));gameState.incomingOffers.unshift({id:gameState.offerSeq++,playerId:p.id,playerName:p.name,club:['הפועל חיפה','מכבי נתניה','קבוצה מחו״ל'][Math.floor(Math.random()*3)],fee,done:false});gameState.newsFeed.unshift(`הצעה התקבלה עבור ${p.name}: €${fee.toLocaleString()}.`);initGame();}
-        function resolveTransferOffer(id,accept){const o=gameState.incomingOffers.find(x=>x.id===id);if(!o||o.done)return;const p=gameState.team.roster.find(x=>x.id===o.playerId);o.done=true;if(accept&&p){gameState.team.budget+=o.fee;gameState.totalIncome=(gameState.totalIncome||0)+o.fee;gameState.team.roster=gameState.team.roster.filter(x=>x.id!==p.id);gameState.starters=gameState.starters.filter(x=>x!==p.id);gameState.fanApproval=Math.max(0,gameState.fanApproval-(p.overall>=75?5:1));gameState.newsFeed.unshift(`רשמי: ${p.name} נמכר ל${o.club} תמורת €${o.fee.toLocaleString()}.`);}else{gameState.newsFeed.unshift(`הצעת ${o.club} על ${o.playerName} נדחתה.`);gameState.boardConfidence=Math.min(100,gameState.boardConfidence+1);}initGame();}
+        function resolveTransferOffer(id,accept){const o=gameState.incomingOffers.find(x=>x.id===id);if(!o||o.done)return;const p=gameState.team.roster.find(x=>x.id===o.playerId);o.done=true;if(accept&&p){gameState.team.budget+=o.fee;gameState.totalIncome=(gameState.totalIncome||0)+o.fee;gameState.team.roster=gameState.team.roster.filter(x=>x.id!==p.id);const wasStarter=gameState.starters.some(x=>String(x)===String(p.id));gameState.starters=gameState.starters.filter(x=>String(x)!==String(p.id));if(wasStarter){const replacement=gameState.team.roster.filter(q=>!gameState.starters.some(x=>String(x)===String(q.id))&&!q.injured).sort((a,b)=>(b.overall||0)-(a.overall||0))[0];if(replacement)gameState.starters.push(replacement.id);}while(gameState.starters.length<11){const replacement=gameState.team.roster.filter(q=>!gameState.starters.some(x=>String(x)===String(q.id))&&!q.injured).sort((a,b)=>(b.overall||0)-(a.overall||0))[0];if(!replacement)break;gameState.starters.push(replacement.id);}gameState.fanApproval=Math.max(0,gameState.fanApproval-(p.overall>=75?5:1));gameState.newsFeed.unshift(`רשמי: ${p.name} נמכר ל${o.club} תמורת €${o.fee.toLocaleString()}.`);}else{gameState.newsFeed.unshift(`הצעת ${o.club} על ${o.playerName} נדחתה.`);gameState.boardConfidence=Math.min(100,gameState.boardConfidence+1);}initGame();}
         function maybeGenerateTransferOffer(){const pool=gameState.team.roster.filter(p=>p.overall>=70&&!p.transferListed);if(!pool.length||Math.random()>.35)return;const p=pool[Math.floor(Math.random()*pool.length)];if(gameState.incomingOffers.some(o=>o.playerId===p.id&&!o.done))return;const fee=Math.round((p.val||300000)*(.7+Math.random()*.65));gameState.incomingOffers.unshift({id:gameState.offerSeq++,playerId:p.id,playerName:p.name,club:['מכבי חיפה','הפועל באר שבע','קבוצה מהליגה הבלגית','מועדון מהליגה הפולנית'][Math.floor(Math.random()*4)],fee,done:false});gameState.newsFeed.unshift(`שוק ההעברות: הצעה של €${fee.toLocaleString()} התקבלה עבור ${p.name}.`);}
 
         function getMediaHTML() {
@@ -1139,7 +1188,7 @@
             let offset=0;
             const slotRows = slots.map(slot => {
               const players=starters.slice(offset,offset+slot.count); offset+=slot.count;
-              return `<div class="flex justify-center items-stretch gap-2 flex-wrap">${players.map((p,i)=>playerChip(p,slot.label+(players.length>1?' '+(i+1):''))).join('')}${Array.from({length:Math.max(0,slot.count-players.length)},(_,i)=>`<div class="bg-black/30 border border-dashed border-white/20 rounded-xl p-3 text-center text-[10px] min-w-[90px]">משבצת פנויה</div>`).join('')}</div>`;
+              return `<div class="flex justify-center items-stretch gap-2 flex-wrap">${players.map((p,i)=>playerChip(p,slot.label+(players.length>1?' '+(i+1):''))).join('')}${Array.from({length:Math.max(0,slot.count-players.length)},(_,i)=>`<button onclick="fillEmptyStarterSlot()" class="bg-black/30 border border-dashed border-emerald-300/70 hover:bg-emerald-900/60 rounded-xl p-3 text-center text-[10px] min-w-[90px] text-emerald-100">＋ משבצת פנויה<br><span>לחץ לשיבוץ שחקן</span></button>`).join('')}</div>`;
             }).join('');
             return `<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <section class="glass-panel p-5 rounded-2xl lg:col-span-2"><div class="flex flex-wrap justify-between items-center gap-2 mb-3"><h3 class="font-black text-lg">⚽ המערך שלך — 4-3-3</h3><span class="text-xs text-slate-400">בחר שחקן בהרכב ואז מחליף; אפשר גם לבחור שני שחקני הרכב</span></div>
@@ -1456,10 +1505,7 @@
                 if (btn) btn.textContent = "🎙️ הפעל שדרן";
                 return;
             }
-            // The commentator speaks only when a real event is added to the live match feed.
-            const home = document.getElementById("live-home-name")?.textContent || "הקבוצה המארחת";
-            const away = document.getElementById("live-away-name")?.textContent || "הקבוצה האורחת";
-            speakMatchEvent(`שלום וברוכים הבאים לשידור. ${home} מול ${away}.`);
+            // מצב שדרן שקט עד שמתרחש אחד משלושת האירועים המבוקשים: גול, מחצית או סיום.
         }
         function speakMatchEvent(message) {
             if (!commentatorEnabled || !message || !("speechSynthesis" in window)) return;
@@ -1640,8 +1686,11 @@
             liveMatch.commentary.unshift({minute: liveMatch.minute, message, kind});
             const box = document.getElementById('live-commentary');
             if (box) box.innerHTML = liveMatch.commentary.slice(0,18).map(e=>`<div class="flex gap-2 border-b border-white/5 pb-2 ${e.kind==='goal'?'text-ea-green font-black':e.kind==='danger'?'text-yellow-200':'text-slate-300'}"><span class="text-slate-500 shrink-0 font-bold">${e.minute}'</span><span>${e.message}</span></div>`).join('');
-            // Speak the exact event shown in the match feed, including its actual minute and event.
-            if (commentatorEnabled) speakMatchEvent(`דקה ${liveMatch.minute}. ${commentatorEventText(message)}`);
+            // השדרן מדבר רק על שערים, שריקת מחצית ושריקת סיום. כל יתר האירועים נשארים בטקסט בלבד.
+            if (commentatorEnabled && /גול|שער|שריקת מחצית|שריקת הסיום/.test(message)) {
+                const spoken = commentatorEventText(message);
+                speakMatchEvent(/גול|שער/.test(message) ? `דקה ${liveMatch.minute}. ${spoken}` : spoken);
+            }
         }
         function showLiveGoal(teamName, score) {
             const flash = document.getElementById('live-goal-flash');
@@ -2037,7 +2086,7 @@
         function setOnboardStep(n){[1,2,3].forEach(i=>document.getElementById('dot'+i).classList.toggle('active',i===n))}
         function onboardBack(n){document.getElementById('onboard-step-login').classList.toggle('hidden',n!==1);document.getElementById('onboard-step-profile').classList.toggle('hidden',n!==2);document.getElementById('onboard-step-team').classList.toggle('hidden',n!==3);setOnboardStep(n)}
         document.addEventListener('change',e=>{if(e.target.id==='career-avatar-file'&&e.target.files&&e.target.files[0]){const f=e.target.files[0];if(!f.type.startsWith('image/'))return;const reader=new FileReader();reader.onload=()=>{onboardingProfile.avatar=reader.result;document.getElementById('avatar-preview').innerHTML='<img alt="תמונת פרופיל" src="'+reader.result+'">'};reader.readAsDataURL(f)}});
-        function onboardProfileNext(){const name=document.getElementById('career-manager-name').value.trim();if(!name){document.getElementById('profile-error').textContent='נא לבחור שם למנג׳ר.';return}onboardingProfile.managerName=name;document.getElementById('profile-error').textContent='';document.getElementById('onboard-step-profile').classList.add('hidden');document.getElementById('onboard-step-team').classList.remove('hidden');const grid=document.getElementById('onboard-team-grid');grid.innerHTML='<div class="col-span-full flex gap-2 mb-2"><button type="button" class="onboard-secondary" onclick="renderOnboardTeams(\'premier\')">ליגת העל</button><button type="button" class="onboard-secondary" onclick="renderOnboardTeams(\'national\')">הליגה הלאומית</button></div><div id="onboard-league-teams" class="col-span-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>';renderOnboardTeams(selectedCareerLeague);setOnboardStep(3)}
+        function onboardProfileNext(){const name=document.getElementById('career-manager-name').value.trim();if(!name){document.getElementById('profile-error').textContent='נא לבחור שם למנג׳ר.';return}onboardingProfile.managerName=name;document.getElementById('profile-error').textContent='';document.getElementById('onboard-step-profile').classList.add('hidden');document.getElementById('onboard-step-team').classList.remove('hidden');const grid=document.getElementById('onboard-team-grid');grid.innerHTML='<div class="col-span-full flex flex-wrap gap-2 mb-2"><button type="button" class="onboard-secondary" onclick="renderOnboardTeams(\'premier\')">ליגת העל</button><button type="button" class="onboard-secondary" onclick="renderOnboardTeams(\'national\')">הליגה הלאומית</button><button type="button" class="onboard-secondary" onclick="renderOnboardTeams(\'ligaA\')">ליגה א׳</button><button type="button" class="onboard-secondary" onclick="renderOnboardTeams(\'ligaB\')">ליגה ב׳</button><button type="button" class="onboard-secondary" onclick="renderOnboardTeams(\'ligaG\')">ליגה ג׳</button></div><div id="onboard-league-teams" class="col-span-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>';renderOnboardTeams(selectedCareerLeague);setOnboardStep(3)}
         function renderOnboardTeams(league){selectedCareerLeague=league;const target=document.getElementById('onboard-league-teams');if(!target)return;target.innerHTML=getCareerLeagueTeamKeys().map(key=>{const t=TEAMS_DATABASE[key];return `<button type="button" class="onboard-team ${onboardingProfile.teamKey===key?'selected':''}" data-team="${key}" onclick="chooseOnboardTeam('${key}')">${teamBadgeHTML(key,'large')}<div class="font-black text-sm">${t.name}</div><div class="text-xs text-emerald-300 mt-1">דירוג ${t.rating}</div></button>`}).join('')}
         function chooseOnboardTeam(key){onboardingProfile.teamKey=key;document.querySelectorAll('.onboard-team').forEach(el=>el.classList.toggle('selected',el.dataset.team===key));document.getElementById('start-career-btn').disabled=false}
         function startCareerFromOnboarding(){if(!onboardingProfile.teamKey)return;try{localStorage.setItem(PROFILE_SAVE_KEY,JSON.stringify({email:onboardingProfile.email,managerName:onboardingProfile.managerName,avatar:onboardingProfile.avatar,teamKey:onboardingProfile.teamKey}))}catch(e){}document.getElementById('career-onboarding').remove();document.body.classList.remove('onboarding-locked');selectTeam(onboardingProfile.teamKey);showProfileBanner(onboardingProfile);saveCareerNow()}
@@ -2070,6 +2119,31 @@
  <div style="max-width:1100px;margin:auto;background:linear-gradient(145deg,#0f172a,#071b18);border:1px solid #ffffff22;border-radius:24px;padding:20px;box-shadow:0 30px 100px #000">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><div style="color:#34d399;font-size:11px;font-weight:900;letter-spacing:3px">CAREER CONTROL ROOM</div><h2 style="font-size:30px;font-weight:1000;margin:4px 0">מרכז ניהול הקריירה</h2><p style="color:#94a3b8;font-size:13px">אימונים · חדר הלבשה · תקשורת · סקאוטינג · שוק העברות</p></div><button onclick="closeCareerHub()" style="background:#334155;padding:10px 15px;border-radius:12px;font-weight:900">✕ סגור</button></div>
   <div id="career-hub-summary" style="margin:16px 0;padding:14px;border-radius:14px;background:#064e3b55;border:1px solid #34d39944"></div>
+  <nav id="fc27-career-nav-visible" aria-label="קטגוריות מרכז הקריירה" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px;margin:14px 0 18px;padding:10px;background:#07111f;border:1px solid #334155;border-radius:16px;position:sticky;top:0;z-index:35">
+    <button type="button" onclick="document.getElementById('hub-kit-stadium').scrollIntoView({behavior:'smooth',block:'start'})" style="padding:13px 8px;background:#064e3b;border:1px solid #34d399;border-radius:12px;color:white;font-weight:900">👕 מדים ואצטדיון</button>
+    <button type="button" onclick="document.getElementById('fc27-europe-visible').scrollIntoView({behavior:'smooth',block:'start'})" style="padding:13px 8px;background:#172554;border:1px solid #60a5fa;border-radius:12px;color:white;font-weight:900">🏆 אירופה</button>
+    <button type="button" onclick="document.getElementById('fc27-israel-leagues-visible').scrollIntoView({behavior:'smooth',block:'start'})" style="padding:13px 8px;background:#3f1d6b;border:1px solid #c084fc;border-radius:12px;color:white;font-weight:900">🇮🇱 ליגות בישראל</button>
+    <button type="button" onclick="document.getElementById('fc27-management-visible').scrollIntoView({behavior:'smooth',block:'start'})" style="padding:13px 8px;background:#78350f;border:1px solid #fbbf24;border-radius:12px;color:white;font-weight:900">⚽ ניהול הקריירה</button>
+  </nav>
+  <section id="fc27-europe-visible" style="scroll-margin-top:90px;margin:12px 0;padding:18px;border-radius:16px;background:linear-gradient(135deg,#101b34,#06101d);border:1px solid #60a5fa66">
+    <h3 style="font-size:22px;font-weight:1000;margin:0 0 8px">🏆 מפעלים אירופיים</h3>
+    <p style="color:#cbd5e1;margin-bottom:12px">במשחק: מקום ראשון בליגה למוקדמות ליגת האלופות; מקומות 2–3 וזוכת גביע המדינה למוקדמות הליגה האירופית.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+      <div style="padding:14px;border-radius:12px;background:#0b1220;border:1px solid #334155"><b style="font-size:18px">🌟 ליגת האלופות</b><p style="color:#94a3b8;font-size:13px;margin:7px 0">ריאל מדריד · ברצלונה · מנצ׳סטר סיטי · ליברפול · באיירן מינכן · אינטר · יובנטוס · פריז סן־ז׳רמן ועוד.</p><button onclick="window.fc27PlayEuropeRound&&window.fc27PlayEuropeRound('championsLeague')" style="padding:9px 12px;border-radius:9px;background:#2563eb;color:white;font-weight:900">שחק סיבוב</button></div>
+      <div style="padding:14px;border-radius:12px;background:#0b1220;border:1px solid #334155"><b style="font-size:18px">🟠 הליגה האירופית</b><p style="color:#94a3b8;font-size:13px;margin:7px 0">רומא · טוטנהאם · ליון · פיינורד · בטיס · ספורטינג · ריינג׳רס · פנרבחצ׳ה ועוד.</p><button onclick="window.fc27PlayEuropeRound&&window.fc27PlayEuropeRound('europaLeague')" style="padding:9px 12px;border-radius:9px;background:#ea580c;color:white;font-weight:900">שחק סיבוב</button></div>
+    </div>
+  </section>
+  <section id="fc27-israel-leagues-visible" style="scroll-margin-top:90px;margin:12px 0;padding:18px;border-radius:16px;background:linear-gradient(135deg,#25103d,#0b1220);border:1px solid #c084fc66">
+    <h3 style="font-size:22px;font-weight:1000;margin:0 0 8px">🇮🇱 ליגות בישראל — מסלולי קריירה נוספים</h3>
+    <p style="color:#cbd5e1;margin-bottom:12px">אפשר לבחור קבוצה גם בליגה א׳, בליגה ב׳ ובליגה ג׳ במסך בחירת הקבוצה. אלו קבוצות וסגלי דמו שנבנו למשחק, לא דירוג רשמי לעונה מסוימת.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+      <div style="padding:13px;border-radius:12px;background:#0b1220;border:1px solid #475569"><b>ליגה א׳</b><p style="font-size:13px;color:#cbd5e1;margin-top:6px">הפועל מרמורק · שמשון תל אביב · הפועל הרצליה · מכבי שעריים ועוד</p></div>
+      <div style="padding:13px;border-radius:12px;background:#0b1220;border:1px solid #475569"><b>ליגה ב׳</b><p style="font-size:13px;color:#cbd5e1;margin-top:6px">הפועל אזור · הפועל לוד · הפועל טירת כרמל · בית״ר כפר סבא ועוד</p></div>
+      <div style="padding:13px;border-radius:12px;background:#0b1220;border:1px solid #475569"><b>ליגה ג׳</b><p style="font-size:13px;color:#cbd5e1;margin-top:6px">מכבי אור יהודה · הפועל קריית אונו · מכבי באר שבע · הפועל ירוחם ועוד</p></div>
+    </div>
+  </section>
+
+  <section id="hub-kit-stadium" class="glass-panel rounded-2xl p-4 mb-4" style="background:linear-gradient(135deg,#082f49,#0f172a 55%,#064e3b);border:1px solid #38bdf855"><div class="flex flex-wrap items-center justify-between gap-3"><div><div style="font-size:11px;letter-spacing:2px;color:#67e8f9;font-weight:900">CLUB IDENTITY</div><h3 class="font-black text-2xl">👕 עיצוב מדים ואצטדיון</h3><p class="text-sm text-slate-300">עצב את מדי הבית והחוץ, הוסף ספונסר ושדרג את האצטדיון של המועדון.</p></div><div id="hub-stadium-level" class="rounded-xl bg-black/30 p-3 text-sm font-bold">רמת אצטדיון: 1</div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4"><div class="rounded-2xl bg-slate-950/60 p-4"><div class="grid grid-cols-2 gap-3"><label class="text-sm">סוג מדים<select id="hub-kit-type" onchange="renderHubKitPreview()" class="w-full mt-1 rounded-lg bg-slate-800 p-2"><option value="home">מדי בית</option><option value="away">מדי חוץ</option><option value="third">מדים שלישיים</option></select></label><label class="text-sm">עיצוב<select id="hub-kit-pattern" onchange="renderHubKitPreview()" class="w-full mt-1 rounded-lg bg-slate-800 p-2"><option value="classic">קלאסי</option><option value="stripes">פסים</option><option value="halves">חצי-חצי</option><option value="hoops">פסים אופקיים</option><option value="gradient">מעבר צבע</option><option value="lightning">ברקים</option></select></label><label class="text-sm">צבע ראשי<input id="hub-kit-primary" type="color" value="#16a34a" oninput="renderHubKitPreview()" class="w-full h-10 mt-1 rounded-lg bg-slate-800 p-1"></label><label class="text-sm">צבע משני<input id="hub-kit-secondary" type="color" value="#ffffff" oninput="renderHubKitPreview()" class="w-full h-10 mt-1 rounded-lg bg-slate-800 p-1"></label></div><label class="block text-sm mt-3">שם ספונסר על החולצה<input id="hub-kit-sponsor" maxlength="24" placeholder="לדוגמה: SPORT MAX" class="w-full mt-1 rounded-lg bg-slate-800 p-3" oninput="renderHubKitPreview()"></label><button onclick="saveHubKit()" class="w-full mt-3 rounded-xl bg-cyan-300 text-slate-950 p-3 font-black">שמור את עיצוב המדים</button><div id="hub-kit-result" class="text-sm mt-2 text-emerald-200"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div class="rounded-2xl bg-slate-950/50 p-3"><div class="text-sm font-black mb-2">תצוגת חולצה</div><div id="hub-kit-preview" class="min-h-[210px] flex items-center justify-center"></div><div id="hub-kit-caption" class="text-center text-xs text-slate-300 mt-2"></div></div><div class="rounded-2xl bg-slate-950/50 p-3"><div class="text-sm font-black mb-2">🏟️ האצטדיון שלך</div><div id="hub-stadium-preview" class="relative overflow-hidden rounded-xl min-h-[170px] flex items-center justify-center" style="background:linear-gradient(#0c4a6e,#0f172a)"><div style="position:absolute;inset:10px 8px 22px;border:10px solid #64748b;border-radius:45%;background:repeating-linear-gradient(90deg,#166534,#166534 18px,#15803d 19px,#15803d 37px);box-shadow:0 0 0 5px #334155"></div><div style="position:absolute;bottom:12px;background:#020617dd;padding:5px 9px;border-radius:8px;font-weight:900;font-size:11px">HOME STADIUM</div><div style="position:relative;font-size:26px">🏟️</div></div><div id="hub-stadium-info" class="text-xs text-slate-300 mt-2"></div><button onclick="upgradeHubStadium()" class="w-full mt-3 rounded-xl bg-amber-300 text-slate-950 p-3 font-black">שדרג אצטדיון · ₪1,000,000</button><div class="text-[10px] text-slate-400 mt-1">כל שדרוג מוסיף 2,000 מקומות. העלות בתקציב המשחק היא €250,000 לכל שדרוג (כמיליון ₪ בקירוב).</div></div></div></div></section>
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
    <section class="glass-panel rounded-2xl p-4"><h3 class="font-black text-lg mb-2">🏋️ אימונים והתפתחות</h3><p class="text-xs text-slate-400 mb-3">בחר שחקן כדי לשפר תכונה. אימון גורם גם לעייפות קלה.</p><select id="hub-train-player" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 mb-3"></select><select id="hub-train-type" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 mb-3"><option value="overall">אימון כללי</option><option value="attack">סיומת והתקפה</option><option value="fitness">כושר והתאוששות</option></select><button onclick="hubTrain()" class="w-full bg-emerald-400 text-slate-950 rounded-xl p-3 font-black">התחל אימון</button><div id="hub-train-result" class="text-sm mt-2 text-emerald-200"></div></section>
    <section class="glass-panel rounded-2xl p-4"><h3 class="font-black text-lg mb-2">🗣️ חדר הלבשה</h3><p class="text-xs text-slate-400 mb-3">שיחת מוטיבציה משפיעה על המורל והכימיה.</p><div class="grid grid-cols-2 gap-2"><button onclick="hubTeamTalk('motivate')" class="bg-blue-600 rounded-xl p-3 font-bold text-sm">נאום מוטיבציה</button><button onclick="hubTeamTalk('calm')" class="bg-slate-700 rounded-xl p-3 font-bold text-sm">להוריד לחץ</button><button onclick="hubTeamTalk('demand')" class="bg-amber-500 text-slate-950 rounded-xl p-3 font-bold text-sm col-span-2">לדרוש תגובה מהקבוצה</button></div><div id="hub-morale" class="mt-3 text-sm text-slate-300"></div></section>
@@ -2111,9 +2185,515 @@
 })();
 </script>
 
-</body>
-</html>
+<script>
+(function(){
+ const escH=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ let lastKitType=null;
+ function state(){if(!window.gameState||!gameState.team)return null;gameState.clubIdentity=gameState.clubIdentity||{kits:{},stadiumLevel:1};gameState.clubIdentity.kits=gameState.clubIdentity.kits||{};return gameState.clubIdentity;}
+ function clubCrest(){const t=gameState.team||{};return t.crest||t.logo||t.badge||'⚽';}
+ window.renderHubKitPreview=function(){if(!gameState?.team)return;const c=state();if(!c)return;const type=document.getElementById('hub-kit-type')?.value||'home',saved=c.kits[type]||{};if(lastKitType!==type){const a=document.getElementById('hub-kit-primary'),b=document.getElementById('hub-kit-secondary'),d=document.getElementById('hub-kit-pattern'),e=document.getElementById('hub-kit-sponsor');if(a)a.value=saved.primary||(type==='away'?'#f8fafc':type==='third'?'#1d4ed8':'#16a34a');if(b)b.value=saved.secondary||'#ffffff';if(d)d.value=saved.pattern||'classic';if(e)e.value=saved.sponsor||'';lastKitType=type;}const primary=document.getElementById('hub-kit-primary')?.value||saved.primary||(type==='away'?'#f8fafc':'#16a34a'),secondary=document.getElementById('hub-kit-secondary')?.value||saved.secondary||'#ffffff',pattern=document.getElementById('hub-kit-pattern')?.value||saved.pattern||'classic',sponsor=(document.getElementById('hub-kit-sponsor')?.value??saved.sponsor??'').trim();
+ const patterns={classic:`linear-gradient(90deg,${primary},${primary})`,stripes:`repeating-linear-gradient(90deg,${primary} 0 18px,${secondary} 18px 27px)`,halves:`linear-gradient(90deg,${primary} 0 50%,${secondary} 50% 100%)`,hoops:`repeating-linear-gradient(0deg,${primary} 0 16px,${secondary} 16px 23px)`,gradient:`linear-gradient(135deg,${primary},${secondary},${primary})`,lightning:`linear-gradient(125deg,${primary} 0 37%,${secondary} 38% 45%,${primary} 46% 57%,${secondary} 58% 64%,${primary} 65%)`};
+ const preview=document.getElementById('hub-kit-preview');if(preview)preview.innerHTML=`<div style="position:relative;width:142px;height:158px;filter:drop-shadow(0 10px 12px #0008)"><svg viewBox="0 0 150 165" width="142" height="158" aria-label="תצוגת חולצה"><path d="M43 13 L59 5 Q75 17 91 5 L107 13 L143 40 L124 65 L108 53 L108 155 Q75 164 42 155 L42 53 L26 65 L7 40 Z" fill="${patterns[pattern]||patterns.classic}" stroke="#e2e8f0" stroke-width="3"/><path d="M59 6 Q75 23 91 6" fill="none" stroke="${secondary}" stroke-width="7"/><path d="M57 10 Q75 25 93 10" fill="none" stroke="#0f172a" stroke-width="2"/><circle cx="75" cy="48" r="15" fill="#f8fafc" stroke="#d4af37" stroke-width="2"/><text x="75" y="53" text-anchor="middle" font-size="12" font-weight="900" fill="#0f172a">${escH(String(gameState.team.name||'FC').split(' ').map(x=>x[0]).join('').slice(0,3))}</text><text x="75" y="87" text-anchor="middle" font-size="${sponsor.length>14?8:10}" font-weight="900" fill="${secondary==='#ffffff'?'#ffffff':'#ffffff'}" stroke="#0f172a" stroke-width="1.5" paint-order="stroke">${escH(sponsor||'SPONSOR')}</text><text x="75" y="87" text-anchor="middle" font-size="${sponsor.length>14?8:10}" font-weight="900" fill="#ffffff">${escH(sponsor||'SPONSOR')}</text></svg></div>`;
+ const cap=document.getElementById('hub-kit-caption');if(cap)cap.textContent=`${gameState.team.name} · ${({home:'מדי בית',away:'מדי חוץ',third:'מדים שלישיים'})[type]} · סמל המועדון`;const level=c.stadiumLevel||1;const lv=document.getElementById('hub-stadium-level');if(lv)lv.textContent='רמת אצטדיון: '+level;const info=document.getElementById('hub-stadium-info');if(info)info.innerHTML=`<b>${escH(gameState.team.stadiumName||('אצטדיון '+gameState.team.name))}</b><br>קיבולת: ${Number(gameState.team.stadiumCapacity||18000).toLocaleString('he-IL')} מקומות<br>שדרוגים שנרכשו: ${level-1}`;
+ };
+ window.saveHubKit=function(){const c=state();if(!c)return;const type=document.getElementById('hub-kit-type').value;c.kits[type]={primary:document.getElementById('hub-kit-primary').value,secondary:document.getElementById('hub-kit-secondary').value,pattern:document.getElementById('hub-kit-pattern').value,sponsor:document.getElementById('hub-kit-sponsor').value.trim()};if(gameState.newsFeed)gameState.newsFeed.unshift(`עיצוב חדש נשמר: ${gameState.team.name} — ${({home:'מדי בית',away:'מדי חוץ',third:'מדים שלישיים'})[type]}${c.kits[type].sponsor?' עם חסות '+c.kits[type].sponsor:''}.`);const r=document.getElementById('hub-kit-result');if(r)r.textContent='העיצוב נשמר בקריירה ויוצג שוב בטעינה הבאה.';renderHubKitPreview();if(typeof saveCareerNow==='function')saveCareerNow();};
+ window.upgradeHubStadium=function(){const c=state();if(!c)return;const cost=250000;if((gameState.team.budget||0)<cost){alert('אין מספיק תקציב. נדרשים €250,000 (כ־₪1,000,000).');return;}gameState.team.budget-=cost;gameState.team.stadiumCapacity=(gameState.team.stadiumCapacity||18000)+2000;c.stadiumLevel=(c.stadiumLevel||1)+1;gameState.team.stadiumName=gameState.team.stadiumName||('אצטדיון '+gameState.team.name);if(gameState.newsFeed)gameState.newsFeed.unshift(`האצטדיון שודרג לרמה ${c.stadiumLevel}: נוספו 2,000 מקומות.`);renderHubKitPreview();if(typeof saveCareerNow==='function')saveCareerNow();if(typeof renderCareerHub==='function')renderCareerHub();};
+ window.fillEmptyStarterSlot=function(){if(!gameState?.team)return;const starters=gameState.starters||[];const roster=gameState.team.roster||[];while(starters.length<11){const p=roster.filter(p=>!starters.some(id=>String(id)===String(p.id))&&!p.injured).sort((a,b)=>(b.overall||0)-(a.overall||0))[0];if(!p)break;starters.push(p.id);}gameState.starters=starters.slice(0,11);gameState.selectedStarter=null;if(typeof initGame==='function')initGame();if(gameState.starters.length<11)alert('אין מספיק שחקנים כשירים בסגל כדי למלא את כל המשבצות.');if(typeof saveCareerNow==='function')saveCareerNow();};
+ // Selling a starter now immediately fills the vacancy with the best available fit.
+ window.sellPlayer=function(playerId){
+    const team=gameState?.team;if(!team)return;
+    const idx=team.roster.findIndex(p=>String(p.id)===String(playerId));if(idx<0)return;
+    const p=team.roster[idx],fee=Math.max(50000,Math.round((p.val||((p.overall||55)*50000))*0.85));
+    if(!confirm(`למכור את ${p.name} תמורת ${(fee/1000).toFixed(0)} אלף אירו?`))return;
+    const wasStarter=(gameState.starters||[]).some(id=>String(id)===String(p.id));
+    team.budget=(team.budget||0)+fee;team.roster.splice(idx,1);
+    const roster=team.roster;
+    let starters=(gameState.starters||[]).filter(id=>String(id)!==String(p.id)&&roster.some(q=>String(q.id)===String(id)));
+    starters=[...new Set(starters.map(id=>roster.find(q=>String(q.id)===String(id))?.id).filter(id=>id!==undefined))].slice(0,11);
+    while(starters.length<11){const q=roster.filter(q=>!starters.some(id=>String(id)===String(q.id))&&!q.injured).sort((a,b)=>(b.overall||0)-(a.overall||0))[0];if(!q)break;starters.push(q.id);}
+    gameState.starters=starters;gameState.selectedStarter=null;
+    if(gameState.newsFeed)gameState.newsFeed.unshift(`${p.name} נמכר תמורת €${fee.toLocaleString()}. ${wasStarter?'ההרכב עודכן אוטומטית והמשבצת הפנויה מולאה.':''}`);
+    if(typeof initGame==='function')initGame();if(typeof saveCareerNow==='function')saveCareerNow();
+  };
+const oldRender=window.renderCareerHub;if(typeof oldRender==='function')window.renderCareerHub=function(){oldRender();const c=state();if(!c)return;for(const id of ['home','away','third']){if(!c.kits[id])c.kits[id]={primary:id==='away'?'#f8fafc':id==='third'?'#1d4ed8':'#16a34a',secondary:'#ffffff',pattern:'classic',sponsor:''};}renderHubKitPreview();};
+ const oldOpen=window.openCareerHub;if(typeof oldOpen==='function')window.openCareerHub=function(){oldOpen();renderHubKitPreview();};
+ window.addEventListener('load',()=>setTimeout(()=>{if(gameState?.team&&document.getElementById('hub-kit-preview'))renderHubKitPreview();},700));
+})();
+</script>
+
+
+<script id="fc27-career-polish-fix">
+(function(){
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const oldPreview=window.renderHubKitPreview;
+ window.renderHubKitPreview=function(){
+  if(typeof oldPreview==='function')oldPreview();
+  const hub=document.getElementById('hub-kit-stadium');if(!hub||!window.gameState?.team)return;
+  const t=gameState.team,c=gameState.clubIdentity||{},level=c.stadiumLevel||1,cap=Number(t.stadiumCapacity||18000);
+  let stadium=document.getElementById('hub-stadium-visual');
+  if(!stadium){stadium=document.createElement('div');stadium.id='hub-stadium-visual';stadium.className='mt-4 rounded-2xl overflow-hidden';hub.appendChild(stadium);}
+  stadium.innerHTML=`<div style="position:relative;min-height:150px;padding:18px;background:linear-gradient(180deg,#0f172a,#064e3b);border:1px solid #34d39955;border-radius:16px;overflow:hidden">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;color:#6ee7b7;font-weight:900;letter-spacing:2px">HOME GROUND</div><h4 style="font-size:21px;font-weight:1000;margin:4px 0">${esc(t.stadiumName||('אצטדיון '+t.name))}</h4><div style="font-size:12px;color:#cbd5e1">🏟️ רמה ${level} · ${cap.toLocaleString('he-IL')} מקומות · ${level-1} שדרוגים</div></div><div style="font-size:44px">🏟️</div></div>
+   <div style="height:48px;margin-top:14px;border-radius:10px;border:1px solid #86efac88;background:repeating-linear-gradient(90deg,#166534 0 10%,#15803d 10% 20%);position:relative;overflow:hidden"><div style="position:absolute;inset:5px;border:1px solid #ffffff88;border-radius:5px"></div><div style="position:absolute;left:50%;top:5px;bottom:5px;border-left:1px solid #ffffff88"></div><div style="position:absolute;width:25px;height:25px;border:1px solid #ffffff88;border-radius:50%;left:calc(50% - 12px);top:11px"></div></div>
+   <button onclick="upgradeHubStadium()" style="margin-top:12px;background:linear-gradient(90deg,#34d399,#a3e635);color:#052e16;padding:11px 14px;border-radius:10px;font-weight:1000;width:100%">שדרג אצטדיון · ₪1,000,000 (כל שדרוג) · +2,000 מקומות</button><div style="font-size:10px;color:#94a3b8;margin-top:6px">עלות במשחק: €250,000 לכל שדרוג (שווה ערך משוער למיליון ₪).</div></div>`;
+ };
+ window.fillEmptyStarterSlot=function(){
+  if(!gameState?.team)return;const roster=gameState.team.roster||[],starters=gameState.starters||[];
+  while(starters.length<11){const p=roster.filter(p=>!starters.some(id=>String(id)===String(p.id))&&!p.injured).sort((a,b)=>(b.overall||0)-(a.overall||0))[0];if(!p)break;starters.push(p.id);}
+  gameState.starters=starters.slice(0,11);gameState.selectedStarter=null;if(typeof initGame==='function')initGame();if(typeof saveCareerNow==='function')saveCareerNow();
+ };
+})();
+</script>
+
+
+<script id="fc27-user-enhancements-v2">
+(function(){
+ const $=id=>document.getElementById(id);
+ const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ // Fix lineup vacancies after transfers and normalize starter IDs against the current roster.
+ window.sellPlayer=function(playerId){
+   const team=window.gameState?.team;if(!team)return;
+   const roster=team.roster||[],idx=roster.findIndex(p=>String(p.id)===String(playerId));if(idx<0)return;
+   const p=roster[idx], fee=Math.max(50000,Math.round(Number(p.val||((p.overall||55)*50000))*.85));
+   if(!confirm(`למכור את ${p.name} תמורת €${fee.toLocaleString('he-IL')}?`))return;
+   const wasStarter=(gameState.starters||[]).some(id=>String(id)===String(p.id));
+   team.budget=(Number(team.budget)||0)+fee;roster.splice(idx,1);
+   const byId=new Map(roster.map(q=>[String(q.id),q]));
+   let starters=[...new Set((gameState.starters||[]).map(id=>String(id)).filter(id=>id!==String(p.id)&&byId.has(id)))].map(id=>byId.get(id).id);
+   // Keep the XI at exactly 11 slots when possible; fill each vacancy with the best eligible player.
+   while(starters.length<11){
+     const candidate=roster.filter(q=>!starters.some(id=>String(id)===String(q.id))&&!q.injured&&!((gameState.suspendedPlayers||[]).some(id=>String(id)===String(q.id)))).sort((a,b)=>(Number(b.overall)||0)-(Number(a.overall)||0))[0];
+     if(!candidate)break;starters.push(candidate.id);
+   }
+   gameState.starters=starters.slice(0,11);gameState.selectedStarter=null;
+   if(gameState.newsFeed)gameState.newsFeed.unshift(`${p.name} נמכר תמורת €${fee.toLocaleString('he-IL')}.${wasStarter?' ההרכב עודכן והמשבצת מולאה אוטומטית.':''}`);
+   if(typeof saveCareerNow==='function')saveCareerNow();if(typeof initGame==='function')initGame();
+   if(gameState.starters.length<11)alert('אין מספיק שחקנים כשירים כדי למלא את כל 11 המשבצות. אפשר לרכוש או להחזיר שחקנים לסגל.');
+ };
+ // Robust selection/swap logic: clicking a starter twice deselects; clicking another starter swaps; bench selection fills selected slot.
+ window.selectStarter=function(id){
+   const roster=gameState?.team?.roster||[],clicked=roster.find(p=>String(p.id)===String(id));
+   if(!clicked||clicked.injured){alert('אי אפשר לבחור שחקן פצוע.');return;}
+   const starters=gameState.starters||(gameState.starters=[]);
+   if(gameState.selectedStarter!=null&&String(gameState.selectedStarter)!==String(id)){
+     const a=starters.findIndex(x=>String(x)===String(gameState.selectedStarter)),b=starters.findIndex(x=>String(x)===String(id));
+     if(a>=0&&b>=0){[starters[a],starters[b]]=[starters[b],starters[a]];gameState.selectedStarter=null;if(typeof saveCareerNow==='function')saveCareerNow();initGame();return;}
+     if(a>=0&&b<0){window.chooseBenchPlayer(id);return;}
+   }
+   gameState.selectedStarter=String(gameState.selectedStarter)===String(id)?null:clicked.id;
+   if(typeof initGame==='function')initGame();
+ };
+ window.chooseBenchPlayer=function(id){
+   const roster=gameState?.team?.roster||[],incoming=roster.find(p=>String(p.id)===String(id));
+   if(!incoming||incoming.injured)return;
+   const starters=gameState.starters||[],sel=gameState.selectedStarter;
+   if(sel==null){alert('בחר קודם שחקן בהרכב הפותח, ואז בחר מחליף.');return;}
+   const idx=starters.findIndex(x=>String(x)===String(sel));
+   if(idx<0){gameState.selectedStarter=null;if(typeof initGame==='function')initGame();return;}
+   if(starters.some((x,i)=>i!==idx&&String(x)===String(incoming.id))){gameState.selectedStarter=null;if(typeof initGame==='function')initGame();return;}
+   const outgoing=roster.find(p=>String(p.id)===String(starters[idx]));
+   starters[idx]=incoming.id;gameState.selectedStarter=null;
+   if(gameState.newsFeed)gameState.newsFeed.unshift(`שינוי בהרכב: ${incoming.name} נכנס במקום ${outgoing?.name||'שחקן'}.`);
+   if(typeof saveCareerNow==='function')saveCareerNow();if(typeof initGame==='function')initGame();
+ };
+ // Kit design templates and a clearer crest/sponsor preview, without replacing the club's real badge when available.
+ const oldPreview=window.renderHubKitPreview;
+ window.renderHubKitPreview=function(){
+   if(typeof oldPreview==='function')oldPreview();
+   // Remove the legacy render that appended a second stadium below the entire panel.
+   $('hub-stadium-visual')?.remove();
+   const preview=$('hub-kit-preview'),stadiumPreview=$('hub-stadium-preview');
+   if(!window.gameState?.team)return;
+   const t=gameState.team,c=gameState.clubIdentity||{},type=$('hub-kit-type')?.value||'home',kit=c.kits?.[type]||{};
+   const primary=$('hub-kit-primary')?.value||kit.primary||'#16a34a',secondary=$('hub-kit-secondary')?.value||kit.secondary||'#ffffff';
+   const sponsor=($('hub-kit-sponsor')?.value??kit.sponsor??'').trim(),pattern=$('hub-kit-pattern')?.value||kit.pattern||'classic';
+   const badge=t.badge||t.crest||t.logo||'';
+   const badgeHTML=typeof badge==='string'&&/^data:image\/|^https?:\/\//i.test(badge)?`<image href="${safe(badge)}" x="61" y="31" width="28" height="28" preserveAspectRatio="xMidYMid meet"/>`:`<circle cx="75" cy="45" r="14" fill="#fff" stroke="#d4af37" stroke-width="2"/><text x="75" y="49" text-anchor="middle" font-size="9" font-weight="900" fill="#0f172a">${safe(String(t.name||'FC').split(/\s+/).map(x=>x[0]).join('').slice(0,3))}</text>`;
+   const paths={classic:'',stripes:`<path d="M51 12h12v146H51z M70 13h10v146H70z M87 12h12v146H87z" fill="${secondary}"/>`,halves:`<path d="M75 15 L107 13 L143 40 L124 65 L108 53 L108 155 L75 160 Z" fill="${secondary}"/>`,hoops:Array.from({length:5},(_,i)=>`<path d="M42 ${35+i*23}h66v10H42z" fill="${secondary}"/>`).join(''),gradient:`<path d="M43 13 L59 5 Q75 17 91 5 L107 13 L143 40 L124 65 L108 53 L108 155 Q75 164 42 155 L42 53 L26 65 L7 40 Z" fill="url(#kitGrad)"/>`,lightning:`<path d="M58 20h25L69 65h22l-39 60 10-47H43z" fill="${secondary}"/>`};
+   if(preview)preview.innerHTML=`<div style="position:relative;width:150px;height:166px;filter:drop-shadow(0 10px 12px #0008)"><svg viewBox="0 0 150 165" width="150" height="165" aria-label="תצוגת חולצה"><defs><linearGradient id="kitGrad" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${primary}"/><stop offset=".5" stop-color="${secondary}"/><stop offset="1" stop-color="${primary}"/></linearGradient></defs><path d="M43 13 L59 5 Q75 17 91 5 L107 13 L143 40 L124 65 L108 53 L108 155 Q75 164 42 155 L42 53 L26 65 L7 40 Z" fill="${primary}" stroke="#e2e8f0" stroke-width="3"/>${paths[pattern]||''}<path d="M59 6 Q75 23 91 6" fill="none" stroke="${secondary}" stroke-width="7"/>${badgeHTML}<text x="75" y="91" text-anchor="middle" font-size="${sponsor.length>14?7:10}" font-weight="900" fill="#fff" stroke="#0f172a" stroke-width="2" paint-order="stroke">${safe(sponsor||'ללא ספונסר')}</text></svg></div>`;
+   const cap=Number(t.stadiumCapacity||18000),level=Number(c.stadiumLevel||1),stadiumName=t.stadiumName||('אצטדיון '+t.name);
+   // Draw the stadium inside the actual stadium preview card, not below the whole Career Center panel.
+   if(stadiumPreview){
+     stadiumPreview.style.minHeight='210px';
+     stadiumPreview.style.background='linear-gradient(180deg,#0b1930 0%,#123d55 55%,#07131e 100%)';
+     stadiumPreview.innerHTML=`<div style="position:absolute;inset:12px 10px 28px;border-radius:48% 48% 18% 18%;background:linear-gradient(180deg,#475569,#1e293b);border:2px solid #94a3b8;box-shadow:inset 0 0 0 5px #0f172a,0 8px 18px #0008;overflow:hidden"><div style="position:absolute;inset:8px 9px 9px;border-radius:46% 46% 15% 15%;background:repeating-linear-gradient(90deg,#166534 0 9%,#15803d 9% 18%);border:2px solid #cbd5e1;box-shadow:inset 0 0 0 2px #e2e8f055"><div style="position:absolute;inset:9px 12px;border:1px solid #ffffffb3;border-radius:2px"><div style="position:absolute;left:50%;top:0;bottom:0;border-left:1px solid #ffffffb3"></div><div style="position:absolute;left:calc(50% - 20px);top:calc(50% - 20px);width:40px;height:40px;border:1px solid #ffffffb3;border-radius:50%"></div><div style="position:absolute;left:0;top:25%;bottom:25%;width:12%;border:1px solid #ffffffb3"></div><div style="position:absolute;right:0;top:25%;bottom:25%;width:12%;border:1px solid #ffffffb3"></div></div></div><div style="position:absolute;left:10%;right:10%;top:7%;height:4px;background:${primary};box-shadow:0 0 10px ${primary}"></div><div style="position:absolute;left:10%;right:10%;bottom:7%;height:4px;background:${primary};box-shadow:0 0 10px ${primary}"></div></div><div style="position:absolute;top:9px;left:14px;right:14px;display:flex;justify-content:space-between;gap:8px;font-size:10px;font-weight:900;letter-spacing:1px;color:#e2e8f0;text-shadow:0 1px 4px #000"> <span>HOME GROUND</span><span>LEVEL ${level}</span></div><div style="position:absolute;bottom:7px;left:8px;right:8px;text-align:center;font-size:10px;font-weight:900;color:#f8fafc;text-shadow:0 1px 4px #000">${safe(stadiumName)} · ${cap.toLocaleString('he-IL')} מקומות</div>`;
+   }
+   const info=$('hub-stadium-info');if(info)info.innerHTML=`<b>${safe(stadiumName)}</b><br>קיבולת: ${cap.toLocaleString('he-IL')} מקומות<br>רמת אצטדיון: ${level} · שדרוגים: ${Math.max(0,level-1)}`;
+   const lv=$('hub-stadium-level');if(lv)lv.textContent='רמת אצטדיון: '+level;
+ };
+ // IMPORTANT: refresh the custom kit/stadium previews whenever the Career Center opens or rerenders.
+ // The earlier version only refreshed on color/select input, so the new visuals stayed blank on first open.
+ const originalCareerHubRender=window.renderCareerHub;
+ if(typeof originalCareerHubRender==='function'){
+   window.renderCareerHub=function(){
+     const result=originalCareerHubRender.apply(this,arguments);
+     try{window.renderHubKitPreview?.();}catch(e){console.error('Career Center preview render failed:',e);}
+     return result;
+   };
+ }
+ const originalCareerHubOpen=window.openCareerHub;
+ if(typeof originalCareerHubOpen==='function'){
+   window.openCareerHub=function(){
+     const result=originalCareerHubOpen.apply(this,arguments);
+     try{window.renderHubKitPreview?.();}catch(e){console.error('Career Center preview render failed:',e);}
+     return result;
+   };
+ }
+ // Refresh again after a career is initialized, including the first-time onboarding flow.
+ const originalInitGame=window.initGame;
+ if(typeof originalInitGame==='function'){
+   window.initGame=function(){
+     const result=originalInitGame.apply(this,arguments);
+     if(window.gameState?.team){try{window.renderHubKitPreview?.();}catch(e){}}
+     return result;
+   };
+ }
+ // Upgrade squad/bench presentation with distinct starter and substitute cards.
+ const css=document.createElement('style');css.textContent=`
+ .glass-panel:has(button[onclick^="chooseBenchPlayer"]) {border-color:#ffffff20;box-shadow:0 16px 40px #0004}
+ .glass-panel:has(button[onclick^="chooseBenchPlayer"]) h3{letter-spacing:-.3px}
+ button[onclick^="selectStarter"]{min-height:58px;min-width:100px;background:linear-gradient(145deg,#071a13f5,#020617f5);border-radius:14px;padding:9px 12px;transition:transform .18s,box-shadow .18s,border-color .18s}
+ button[onclick^="selectStarter"]:hover,button[onclick^="chooseBenchPlayer"]:hover{transform:translateY(-2px);box-shadow:0 8px 20px #0005;border-color:#34d399}
+ button[onclick^="chooseBenchPlayer"]{border:1px solid #ffffff12;background:linear-gradient(120deg,#172033,#0b1220);transition:all .18s}
+ button[onclick^="chooseBenchPlayer"]:disabled{filter:grayscale(1)}
+ .live-pitch{border-color:#34d39999} button[onclick^="selectStarter"]:focus-visible,button[onclick^="chooseBenchPlayer"]:focus-visible{outline:3px solid #a3e635;outline-offset:2px}
+ @media(max-width:700px){button[onclick^="selectStarter"]{min-width:78px;padding:7px 5px;font-size:10px}}
+ `;document.head.appendChild(css);
+})();
+</script>
+
 <script id="career-upgrade-autosave">
 window.addEventListener('beforeunload',()=>{try{if(typeof saveCareerNow==='function')saveCareerNow()}catch(e){}});
 window.addEventListener('pagehide',()=>{try{if(typeof saveCareerNow==='function')saveCareerNow()}catch(e){}});
 </script>
+
+<script id="fc27-mobile-desktop-and-kit-presets">
+(function(){
+ const style=document.createElement('style');
+ style.textContent=`
+  #career-onboarding .device-choice{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  #career-onboarding .device-choice button{flex:1;min-width:145px;padding:13px 15px;border:1px solid #475569;border-radius:14px;background:#0f172a;color:#e2e8f0;font-weight:900;transition:.2s}
+  #career-onboarding .device-choice button.active{border-color:#34d399;background:linear-gradient(120deg,#064e3b,#0f172a);box-shadow:0 0 0 2px #34d39922}
+  body.fc27-phone-mode #app{max-width:520px;margin-inline:auto}
+  body.fc27-phone-mode #app nav{gap:6px;flex-wrap:wrap}
+  body.fc27-phone-mode #app nav button{font-size:10px;padding:8px 10px}
+  body.fc27-phone-mode #app .glass-panel{padding:12px}
+  body.fc27-phone-mode #app .grid{grid-template-columns:minmax(0,1fr)!important}
+  body.fc27-desktop-mode #app{width:100%;max-width:1800px;margin-inline:auto}
+  #hub-kit-stadium{scroll-margin-top:20px}
+  #hub-kit-stadium .kit-preset-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+  #hub-kit-stadium .kit-preset{border:1px solid #ffffff22;border-radius:12px;padding:9px 6px;background:#0f172a;color:#e2e8f0;font-size:12px;font-weight:900}
+  #hub-kit-stadium .kit-preset:hover{border-color:#34d399;background:#064e3b}
+  @media(max-width:560px){#career-onboarding .onboard-card{max-height:94vh;overflow:auto}#career-onboarding .device-choice{display:grid;grid-template-columns:1fr 1fr}}
+ `;
+ document.head.appendChild(style);
+ function addModeChoices(){
+  const top=document.querySelector('#career-onboarding .onboard-top');
+  if(!top||top.querySelector('.device-choice'))return;
+  const box=document.createElement('div');box.className='device-choice';
+  box.innerHTML='<button type="button" data-mode="phone">📱 גרסת טלפון <span style="display:block;font-size:10px;font-weight:500;margin-top:4px">ממשק קומפקטי ונוח למגע</span></button><button type="button" data-mode="desktop" class="active">🖥️ גרסת מחשב <span style="display:block;font-size:10px;font-weight:500;margin-top:4px">תצוגה רחבה ומלאה</span></button>';
+  top.appendChild(box);
+  box.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+   box.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));
+   document.body.classList.toggle('fc27-phone-mode',b.dataset.mode==='phone');
+   document.body.classList.toggle('fc27-desktop-mode',b.dataset.mode==='desktop');
+   try{localStorage.setItem('fc27-display-mode',b.dataset.mode)}catch(e){}
+  }));
+  let mode='desktop';try{mode=localStorage.getItem('fc27-display-mode')||'desktop'}catch(e){}
+  const b=box.querySelector('[data-mode="'+mode+'"]');if(b)b.click();
+ }
+ function addKitPresets(){
+  const panel=document.getElementById('hub-kit-stadium');
+  if(!panel||panel.querySelector('.kit-preset-row'))return;
+  const label=panel.querySelector('label');
+  const presets=document.createElement('div');presets.className='kit-preset-row';
+  presets.innerHTML='<button class="kit-preset" data-a="#16a34a" data-b="#ffffff" data-p="classic">🟢 ירוק קלאסי</button><button class="kit-preset" data-a="#1d4ed8" data-b="#facc15" data-p="stripes">🔵 כחול-זהב</button><button class="kit-preset" data-a="#dc2626" data-b="#ffffff" data-p="halves">🔴 אדום-לבן</button><button class="kit-preset" data-a="#111827" data-b="#facc15" data-p="lightning">⚫ שחור-זהב</button><button class="kit-preset" data-a="#f8fafc" data-b="#0f172a" data-p="hoops">⚪ לבן-כהה</button><button class="kit-preset" data-a="#7c3aed" data-b="#ffffff" data-p="gradient">🟣 סגול</button>';
+  if(label)label.parentNode.insertBefore(presets,label.nextSibling);else panel.appendChild(presets);
+  presets.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+   const a=document.getElementById('hub-kit-primary'),c=document.getElementById('hub-kit-secondary'),pat=document.getElementById('hub-kit-pattern');
+   if(a)a.value=b.dataset.a;if(c)c.value=b.dataset.b;if(pat)pat.value=b.dataset.p;
+   if(typeof window.renderHubKitPreview==='function')window.renderHubKitPreview();
+  }));
+ }
+ const oldOpen=window.openCareerHub;
+ if(typeof oldOpen==='function')window.openCareerHub=function(){const r=oldOpen.apply(this,arguments);setTimeout(addKitPresets,0);return r;};
+ const oldRender=window.renderCareerHub;
+ if(typeof oldRender==='function')window.renderCareerHub=function(){const r=oldRender.apply(this,arguments);setTimeout(addKitPresets,0);return r;};
+ window.addEventListener('DOMContentLoaded',addModeChoices);
+ window.addEventListener('load',()=>{addModeChoices();addKitPresets();});
+ // Keep the lineup array aligned with the roster; sold starters no longer leave an unselectable hole.
+ const previousSell=window.sellPlayer;
+ if(typeof previousSell==='function')window.sellPlayer=function(id){
+  previousSell(id);
+  if(!window.gameState?.team)return;
+  const roster=gameState.team.roster||[],eligible=roster.filter(p=>!p.injured&&!((gameState.suspendedPlayers||[]).some(x=>String(x)===String(p.id))));
+  const valid=new Set(roster.map(p=>String(p.id)));
+  let slots=[...(gameState.starters||[])].filter(x=>valid.has(String(x)));
+  slots=[...new Set(slots.map(x=>String(x)))].map(x=>roster.find(p=>String(p.id)===x)?.id).filter(x=>x!==undefined).slice(0,11);
+  while(slots.length<Math.min(11,eligible.length)){
+   const p=eligible.filter(q=>!slots.some(x=>String(x)===String(q.id))).sort((a,b)=>(b.overall||0)-(a.overall||0))[0];
+   if(!p)break;slots.push(p.id);
+  }
+  gameState.starters=slots;gameState.selectedStarter=null;
+  if(typeof saveCareerNow==='function')saveCareerNow();
+ };
+})();
+</script>
+
+
+<script id="fc27-european-competitions-visible-v6">
+(function(){
+const css=document.createElement('style');css.textContent=`
+#career-hub .fc27-top-categories{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0;padding:8px;background:#020617;border:1px solid #334155;border-radius:16px;position:sticky;top:0;z-index:30}
+#career-hub .fc27-top-categories button{padding:12px 8px;border:1px solid #475569;border-radius:12px;background:#0f172a;color:#e2e8f0;font-weight:900}
+#career-hub .fc27-top-categories button.active{background:linear-gradient(120deg,#065f46,#164e63);border-color:#34d399;color:white}
+#career-hub .fc27-europe-panel{background:linear-gradient(145deg,#101b34,#06101d);border:1px solid #60a5fa55;border-radius:18px;padding:18px;margin:14px 0}
+#career-hub .fc27-europe-panel h3{font-size:22px;font-weight:1000;margin:0 0 8px}
+#career-hub .fc27-europe-card{background:#0b1220;border:1px solid #334155;border-radius:14px;padding:13px;margin:8px 0}
+#career-hub .fc27-europe-action{background:#2563eb;color:white;padding:10px 14px;border-radius:10px;font-weight:900;margin:5px 5px 5px 0}
+#career-hub .fc27-qualifier{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #ffffff15}
+#career-hub .fc27-qualifier:last-child{border:0}
+@media(max-width:560px){#career-hub .fc27-top-categories{grid-template-columns:1fr;position:relative}#career-hub .fc27-europe-panel{padding:12px}}
+`;document.head.appendChild(css);
+const europeanClubs=[
+['Real Madrid','ספרד'],['Barcelona','ספרד'],['Atlético Madrid','ספרד'],['Manchester City','אנגליה'],['Liverpool','אנגליה'],['Arsenal','אנגליה'],['Bayern Munich','גרמניה'],['Borussia Dortmund','גרמניה'],['Paris Saint-Germain','צרפת'],['Inter','איטליה'],['AC Milan','איטליה'],['Juventus','איטליה'],['Benfica','פורטוגל'],['Porto','פורטוגל'],['Ajax','הולנד'],['Celtic','סקוטלנד']
+];
+function el(id){return document.getElementById(id)}
+function esc(x){return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function getState(){if(!window.gameState)return null;let g=gameState;if(!g.europeanTournaments)g.europeanTournaments={};return g.europeanTournaments}
+function localIsraeliClubs(){
+ let db=window.TEAMS_DATABASE||{}, names=Object.keys(db).map(k=>({key:k,name:db[k]?.name||k}));
+ const preferred=['הפועל באר שבע','בית"ר ירושלים','מכבי תל אביב','מכבי חיפה','הפועל תל אביב'];
+ const result=[];
+ preferred.forEach(n=>{let t=names.find(x=>x.name.includes(n)||n.includes(x.name));if(t&&!result.some(y=>y.key===t.key))result.push(t)});
+ names.forEach(t=>{if(result.length<4&&!result.some(y=>y.key===t.key))result.push(t)});
+ return result.slice(0,4);
+}
+function buildTournament(name,seeded){
+ const clubs=localIsraeliClubs();
+ let list=seeded.slice();
+ clubs.forEach((c,i)=>{if(!list.some(x=>x.name===c.name))list.push({name:c.name,country:'ישראל',seed:i+1})});
+ while(list.length<16)list.push({name:'מועדון אירופי '+(list.length+1),country:'אירופה'});
+ return {name,teams:list.slice(0,16),round:0,history:[],champion:null};
+}
+function ensure(){
+ const st=getState();if(!st)return;
+ if(!st.championsLeague)st.championsLeague=buildTournament('ליגת האלופות',europeanClubs.map((x,i)=>({name:x[0],country:x[1],seed:i+1})));
+ if(!st.europaLeague)st.europaLeague=buildTournament('הליגה האירופית',[
+ {name:'Roma',country:'איטליה'},{name:'Tottenham',country:'אנגליה'},{name:'Lyon',country:'צרפת'},{name:'Feyenoord',country:'הולנד'},
+ {name:'Real Betis',country:'ספרד'},{name:'Sporting CP',country:'פורטוגל'},{name:'Rangers',country:'סקוטלנד'},{name:'Fenerbahçe',country:'טורקיה'},
+ {name:'PAOK',country:'יוון'},{name:'Viktoria Plzeň',country:'צ׳כיה'},{name:'Freiburg',country:'גרמניה'},{name:'Braga',country:'פורטוגל'}
+ ]);
+ return st;
+}
+function qualification(){
+ const g=window.gameState||{}, clubs=localIsraeliClubs();
+ let champion=g.leagueChampion, cup=g.cupWinner;
+ const names=clubs.map(c=>c.name);
+ const first=champion?(window.TEAMS_DATABASE?.[champion]?.name||champion):names[0]||'האלופה הישראלית';
+ const cupName=cup?(window.TEAMS_DATABASE?.[cup]?.name||cup):'מחזיקת גביע המדינה';
+ let second=names.find(n=>n!==first)||'סגנית האלופה';
+ let third=names.find(n=>n!==first&&n!==second)||'מקום שלישי';
+ return [{place:'מקום 1 בליגה',club:first,competition:'מוקדמות ליגת האלופות'},{place:'מקום 2 בליגה',club:second,competition:'מוקדמות הליגה האירופית'},{place:'מקום 3 בליגה',club:third,competition:'מוקדמות הליגה האירופית'},{place:'זוכת גביע המדינה',club:cupName,competition:'מוקדמות הליגה האירופית'}];
+}
+function render(){
+ const hub=el('career-hub'),summary=el('career-hub-summary'),kit=el('hub-kit-stadium');if(!hub||!summary||!kit)return;
+ let nav=hub.querySelector('.fc27-top-categories');
+ if(!nav){nav=document.createElement('div');nav.className='fc27-top-categories';nav.innerHTML='<button class="active" data-pane="club">👕 מועדון, מדים ואצטדיון</button><button data-pane="europe">🏆 מפעלים אירופיים</button><button data-pane="career">⚽ ניהול הקריירה</button>';summary.insertAdjacentElement('afterend',nav);
+ nav.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{nav.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));let pane=b.dataset.pane;if(pane==='club')kit.scrollIntoView({behavior:'smooth',block:'start'});else if(pane==='europe')el('fc27-europe-section')?.scrollIntoView({behavior:'smooth',block:'start'});else{let grid=Array.from(hub.querySelectorAll('.grid')).find(x=>!x.closest('#hub-kit-stadium'));grid?.scrollIntoView({behavior:'smooth',block:'start'})}}));
+ }
+ let section=el('fc27-europe-section');if(!section){section=document.createElement('section');section.id='fc27-europe-section';section.className='fc27-europe-panel';kit.insertAdjacentElement('afterend',section)}
+ const st=ensure();if(!st)return;
+ const quals=qualification();
+ function tournamentCard(key,label,format){
+  const t=st[key];const current=t.teams.slice();
+  const teamsHtml=current.map((x,i)=>`<div class="fc27-qualifier"><span>${i+1}. ${esc(x.name)}</span><small>${esc(x.country||'אירופה')}</small></div>`).join('');
+  const history=t.history.length?t.history.map(r=>`<div class="fc27-europe-card"><b>${esc(r.title)}</b><div>${r.matches.map(m=>`${esc(m.a)} ${m.sa}–${m.sb} ${esc(m.b)}`).join('<br>')}</div></div>`).join(''):'<p class="text-slate-400 text-sm">עדיין לא שוחקו משחקים.</p>';
+  return `<div class="fc27-europe-card"><h4 style="font-weight:1000;font-size:18px">${label}</h4><p style="color:#94a3b8;font-size:12px;margin-bottom:8px">${format}</p><div style="max-height:190px;overflow:auto">${teamsHtml}</div>${t.champion?`<p style="color:#86efac;font-weight:900;margin-top:10px">🏆 זוכה: ${esc(t.champion)}</p>`:`<button class="fc27-europe-action" onclick="window.fc27PlayEuropeRound('${key}')">שחק סיבוב ${t.round+1}</button>`}</div>${history}`;
+ }
+ section.innerHTML=`<div style="color:#93c5fd;font-size:11px;font-weight:900;letter-spacing:2px">UEFA CLUB COMPETITIONS</div><h3>🏆 המפעלים האירופיים</h3><p style="color:#cbd5e1;margin-bottom:12px">הקבוצות הישראליות מצטרפות לפי תוצאות הליגה והגביע. במצב המשחק הזה, מקום ראשון נכנס למוקדמות האלופות, מקומות 2–3 ומחזיקת הגביע למוקדמות הליגה האירופית.</p><div class="fc27-europe-card"><h4 style="font-weight:1000">🇮🇱 נציגות ישראל באירופה</h4>${quals.map(q=>`<div class="fc27-qualifier"><span><b>${esc(q.place)}</b><br>${esc(q.club)}</span><small>${esc(q.competition)}</small></div>`).join('')}</div><div class="grid grid-cols-1 lg:grid-cols-2 gap-3">${tournamentCard('championsLeague','🌟 ליגת האלופות','מוקדמות → שלב ליגה → נוקאאוט')}${tournamentCard('europaLeague','🟠 הליגה האירופית','מוקדמות → שלב ליגה → נוקאאוט')}</div><p style="color:#94a3b8;font-size:11px;margin-top:10px">הטורנירים פועלים כסימולציה בתוך המשחק ואינם מחוברים לתוצאות UEFA בזמן אמת.</p>`;
+}
+window.fc27PlayEuropeRound=function(key){
+ const st=ensure(),t=st&&st[key];if(!t||t.champion)return;
+ let pool=t.teams.slice().sort(()=>Math.random()-.5),matches=[],winners=[];
+ for(let i=0;i<pool.length;i+=2){if(!pool[i+1]){winners.push(pool[i]);continue}let a=pool[i],b=pool[i+1],sa=Math.floor(Math.random()*4),sb=Math.floor(Math.random()*4);if(sa===sb)Math.random()<.5?sa++:sb++;let win=sa>sb?a:b;winners.push(win);matches.push({a:a.name,b:b.name,sa,sb,winner:win.name})}
+ t.history.push({title:['מוקדמות','סיבוב נוקאאוט','שמינית גמר','רבע גמר','חצי גמר','הגמר'][Math.min(t.round,5)]+' · סיבוב '+(t.round+1),matches});
+ t.round++;t.teams=winners;
+ if(winners.length===1)t.champion=winners[0].name;
+ render();if(typeof saveCareerNow==='function')saveCareerNow();
+};
+const oldOpen=window.openCareerHub;window.openCareerHub=function(){let r=oldOpen?.apply(this,arguments);setTimeout(render,0);return r};
+const oldRender=window.renderCareerHub;window.renderCareerHub=function(){let r=oldRender?.apply(this,arguments);setTimeout(render,0);return r};
+document.addEventListener('DOMContentLoaded',()=>setTimeout(render,100));
+})();
+</script>
+
+
+<script id="fc27-lower-leagues-and-visible-center-v7">
+(function(){
+  function anchorManagement(){
+    const hub=document.getElementById('career-hub'); if(!hub)return;
+    const nav=document.getElementById('fc27-career-nav-visible'); if(!nav)return;
+    const kit=document.getElementById('hub-kit-stadium');
+    if(kit && !document.getElementById('fc27-management-visible')){
+      const candidates=Array.from(hub.querySelectorAll('section, .grid')).filter(x=>x!==kit && !x.closest('#fc27-europe-visible') && !x.closest('#fc27-israel-leagues-visible'));
+      const target=candidates.find(x=>x.querySelector && (x.querySelector('#hub-train-player')||x.querySelector('#hub-morale')||x.querySelector('#hub-season-info')));
+      if(target)target.id='fc27-management-visible';
+    }
+  }
+  document.addEventListener('DOMContentLoaded',anchorManagement);
+  window.addEventListener('load',anchorManagement);
+  const oldOpen=window.openCareerHub;
+  if(typeof oldOpen==='function')window.openCareerHub=function(){const r=oldOpen.apply(this,arguments);anchorManagement();return r};
+  const oldRender=window.renderCareerHub;
+  if(typeof oldRender==='function')window.renderCareerHub=function(){const r=oldRender.apply(this,arguments);anchorManagement();return r};
+})();
+</script>
+
+
+<style id="fc27-history-fans-style">
+#fc27-history-fans{margin:16px 0;padding:18px;border-radius:18px;background:linear-gradient(135deg,#101c32,#0b1220 65%,#142b27);border:1px solid #475569;color:#f8fafc;scroll-margin-top:100px}
+#fc27-history-fans h3{font-size:22px;font-weight:1000;margin:0 0 6px}
+#fc27-history-fans .hf-card{background:#0b1322;border:1px solid #334155;border-radius:14px;padding:14px}
+#fc27-history-fans .hf-btn{padding:10px 12px;border-radius:10px;background:#1d4ed8;color:white;font-weight:900;border:1px solid #60a5fa;cursor:pointer}
+#fc27-history-fans .hf-btn.secondary{background:#263449;border-color:#64748b}
+#fc27-history-fans input,#fc27-history-fans select{width:100%;padding:10px;border-radius:9px;background:#111827;color:white;border:1px solid #475569}
+#fc27-history-fans .hf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+#fc27-history-fans .hf-record{padding:9px 10px;margin:7px 0;border-radius:9px;background:#172337;border:1px solid #334155}
+</style>
+<script id="fc27-history-fans-v8">
+(function(){
+'use strict';
+const KEY='fc27ClubLegacy_v1';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{club:'המועדון שלי',rival:'מכבי תל אביב',records:[],seasons:0,points:0}}catch(e){return {club:'המועדון שלי',rival:'מכבי תל אביב',records:[],seasons:0,points:0}}}
+function save(s){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+function ensureUI(){
+ const hub=document.getElementById('career-hub');if(!hub)return;
+ let nav=document.getElementById('fc27-career-nav-visible');
+ if(nav&&!document.getElementById('fc27-history-nav-btn')){
+  const b=document.createElement('button');b.id='fc27-history-nav-btn';b.type='button';b.textContent='🏛️ היסטוריה ואוהדים';
+  b.style.cssText='padding:13px 8px;background:#134e4a;border:1px solid #5eead4;border-radius:12px;color:white;font-weight:900;cursor:pointer';
+  b.onclick=()=>document.getElementById('fc27-history-fans')?.scrollIntoView({behavior:'smooth',block:'start'});
+  nav.appendChild(b);
+ }
+ let section=document.getElementById('fc27-history-fans');
+ if(!section){section=document.createElement('section');section.id='fc27-history-fans';
+   const anchor=document.getElementById('fc27-israel-leagues-visible')||document.getElementById('fc27-europe-visible')||nav;
+   if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(section,anchor.nextSibling);else hub.appendChild(section);
+ }
+ render(section);
+}
+function render(section){
+ const s=load();
+ const trophies=s.records.filter(r=>r.type==='🏆').length;
+ const titles=s.records.filter(r=>r.type==='🥇').length;
+ const badges=[
+  {name:'התחלה חדשה',desc:'תעד את האירוע הראשון בקריירה',ok:s.records.length>=1,icon:'🌱'},
+  {name:'מועדון עם מסורת',desc:'תעד 5 אירועים היסטוריים',ok:s.records.length>=5,icon:'🏛️'},
+  {name:'ארון גביעים',desc:'תעד 3 זכיות בגביע',ok:trophies>=3,icon:'🏆'},
+  {name:'שליטי הליגה',desc:'תעד 3 אליפויות',ok:titles>=3,icon:'🥇'},
+  {name:'דרך ארוכה',desc:'שמור 5 סיכומי עונה',ok:s.seasons>=5,icon:'📅'}
+ ];
+ section.innerHTML=`
+ <div style="font-size:11px;letter-spacing:2px;color:#5eead4;font-weight:900">CLUB LEGACY</div>
+ <h3>🏛️ היסטוריית המועדון ואוהדים</h3>
+ <p style="color:#cbd5e1;margin:0">בנה את הסיפור של המועדון שלך: תעד תארים ורגעים גדולים, שמור סיכומי עונה ובחר יריבה לדרבי. הנתונים נשמרים בדפדפן הזה.</p>
+ <div class="hf-grid">
+  <div class="hf-card"><h4 style="font-weight:1000;margin-bottom:8px">📜 ספר ההיסטוריה</h4>
+   <label for="hf-club">שם המועדון</label><input id="hf-club" maxlength="42" value="${esc(s.club)}" />
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+    <div><label for="hf-type">סוג אירוע</label><select id="hf-type"><option value="🏆">זכייה בגביע</option><option value="🥇">אליפות ליגה</option><option value="⬆️">עליית ליגה</option><option value="🌟">רגע בלתי נשכח</option><option value="🤝">החתמה גדולה</option></select></div>
+    <div><label for="hf-year">עונה / שנה</label><input id="hf-year" maxlength="16" placeholder="למשל 2026/27" /></div>
+   </div>
+   <label for="hf-note" style="display:block;margin-top:9px">תיאור האירוע</label><input id="hf-note" maxlength="120" placeholder="למשל: ניצחון בגמר בדקה האחרונה" />
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="hf-btn" id="hf-add">➕ הוסף להיסטוריה</button><button class="hf-btn secondary" id="hf-season">📅 שמור סיכום עונה</button></div>
+   <div style="margin-top:12px;color:#99f6e4;font-weight:900">עונות שנשמרו: ${s.seasons} · אירועים: ${s.records.length}</div>
+  </div>
+  <div class="hf-card"><h4 style="font-weight:1000;margin-bottom:8px">🔥 אוהדים ודרבי</h4>
+   <label for="hf-rival">בחר יריבה</label><select id="hf-rival">${['מכבי תל אביב','הפועל תל אביב','מכבי חיפה','הפועל באר שבע','בית״ר ירושלים','מכבי נתניה','בני סכנין','יריבה אחרת'].map(x=>`<option ${s.rival===x?'selected':''}>${esc(x)}</option>`).join('')}</select>
+   <div id="hf-derby" style="margin-top:12px;padding:13px;border-radius:12px;background:linear-gradient(120deg,#3f1d1d,#172337);border:1px solid #7f1d1d">
+    <div style="font-size:11px;color:#fca5a5;font-weight:900;letter-spacing:1px">MATCHDAY ALERT</div>
+    <div style="font-size:19px;font-weight:1000;margin:4px 0">⚔️ ${esc(s.club)} נגד ${esc(s.rival)}</div>
+    <p style="font-size:13px;color:#cbd5e1;margin:0">משחק יריבות! האוהדים מצפים ללחימה, מחויבות ותוצאה טובה. שמור את המשחק כרגע היסטורי אחרי שתסיים לשחק.</p>
+   </div>
+   <div style="margin-top:12px;font-weight:900">🏅 הישגים שנפתחו</div>
+   ${badges.map(b=>`<div class="hf-record" style="border-color:${b.ok?'#0f766e':'#334155'};opacity:${b.ok?1:.72}">${b.ok?'✅':'🔒'} ${b.icon} <b>${esc(b.name)}</b><div style="font-size:12px;color:#cbd5e1">${esc(b.desc)}</div></div>`).join('')}
+  </div>
+ </div>
+ <div class="hf-card" style="margin-top:12px"><h4 style="font-weight:1000">📚 רגעים שנכנסו להיסטוריה</h4>
+ ${s.records.length?s.records.slice().reverse().map((r,i)=>`<div class="hf-record"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>${esc(r.type)} ${esc(r.note)}</b><small style="color:#94a3b8">${esc(r.year||'ללא תאריך')}</small></div></div>`).join(''):'<p style="color:#94a3b8;margin-top:8px">עדיין אין אירועים. הוסף את הזכייה הראשונה או רגע מיוחד.</p>'}
+ ${s.records.length?'<button class="hf-btn secondary" id="hf-export" style="margin-top:8px">📋 העתק היסטוריה</button>':''}
+ </div>`;
+ section.querySelector('#hf-club').addEventListener('change',e=>{const d=load();d.club=e.target.value.trim()||'המועדון שלי';save(d);render(section)});
+ section.querySelector('#hf-rival').addEventListener('change',e=>{const d=load();d.rival=e.target.value;save(d);render(section)});
+ section.querySelector('#hf-add').addEventListener('click',()=>{
+  const d=load(),note=section.querySelector('#hf-note').value.trim();
+  if(!note){section.querySelector('#hf-note').focus();return}
+  d.club=section.querySelector('#hf-club').value.trim()||'המועדון שלי';
+  d.records.push({type:section.querySelector('#hf-type').value,year:section.querySelector('#hf-year').value.trim(),note,at:new Date().toISOString()});
+  save(d);render(section);
+ });
+ section.querySelector('#hf-season').addEventListener('click',()=>{
+  const d=load();d.club=section.querySelector('#hf-club').value.trim()||'המועדון שלי';d.seasons++;
+  d.records.push({type:'📅',year:section.querySelector('#hf-year').value.trim()||'עונה '+d.seasons,note:'נשמר סיכום עונה מספר '+d.seasons,at:new Date().toISOString()});
+  save(d);render(section);
+ });
+ const ex=section.querySelector('#hf-export');if(ex)ex.addEventListener('click',()=>{
+  const d=load();const txt=d.club+' — היסטוריית מועדון\n'+d.records.map(r=>`${r.year||'ללא תאריך'} | ${r.type} ${r.note}`).join('\n');
+  const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');ex.textContent='✅ ההיסטוריה הועתקה'}catch(e){ex.textContent='לא ניתן להעתיק אוטומטית'}ta.remove();
+ });
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureUI,180));
+window.addEventListener('load',()=>setTimeout(ensureUI,300));
+const prevOpen=window.openCareerHub;if(typeof prevOpen==='function')window.openCareerHub=function(){const r=prevOpen.apply(this,arguments);setTimeout(ensureUI,100);return r};
+const prevRender=window.renderCareerHub;if(typeof prevRender==='function')window.renderCareerHub=function(){const r=prevRender.apply(this,arguments);setTimeout(ensureUI,100);return r};
+})();
+</script>
+
+
+<style id="fc27-captain-style-v9">
+#fc27-captain-module{margin:14px 0;padding:18px;border-radius:17px;background:linear-gradient(135deg,#172554,#0b1220 65%,#064e3b);border:1px solid #60a5fa77;color:#f8fafc;scroll-margin-top:100px}
+#fc27-captain-module .captain-box{background:#0b1322;border:1px solid #334155;border-radius:13px;padding:14px}
+#fc27-captain-module select{width:100%;padding:11px;border-radius:10px;background:#111827;color:white;border:1px solid #475569}
+#fc27-captain-module button{padding:11px 14px;border-radius:10px;background:#fbbf24;color:#111827;font-weight:900;cursor:pointer}
+</style>
+<script id="fc27-captain-module-v9">
+(function(){
+'use strict';
+function addCaptainNav(){
+ const nav=document.getElementById('fc27-career-nav-visible');
+ if(nav&&!document.getElementById('fc27-captain-nav')){
+  const b=document.createElement('button');b.id='fc27-captain-nav';b.type='button';b.textContent='🧢 קפטן ומנהיגות';
+  b.style.cssText='padding:13px 8px;background:#1e3a8a;border:1px solid #93c5fd;border-radius:12px;color:white;font-weight:900;cursor:pointer';
+  b.onclick=()=>document.getElementById('fc27-captain-module')?.scrollIntoView({behavior:'smooth',block:'start'});nav.appendChild(b);
+ }
+ const hub=document.getElementById('career-hub');if(!hub)return;
+ let s=document.getElementById('fc27-captain-module');
+ if(!s){s=document.createElement('section');s.id='fc27-captain-module';const anchor=document.getElementById('hub-kit-stadium')||document.getElementById('fc27-israel-leagues-visible');if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(s,anchor.nextSibling);else hub.appendChild(s);}
+ render(s);
+}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function render(s){
+ const gs=(typeof gameState!=='undefined')?gameState:null;if(!gs||!gs.team)return;
+ const roster=gs.team.roster||[];const captain=roster.find(p=>String(p.id)===String(gs.team.captainId));
+ s.innerHTML=`<div style="font-size:11px;letter-spacing:2px;color:#93c5fd;font-weight:900">TEAM LEADERSHIP</div><h3 style="font-size:22px;font-weight:1000;margin:4px 0 6px">🧢 קפטן המועדון ומנהיגות</h3><p style="color:#cbd5e1;margin:0 0 12px">בחר שחקן שיוביל את הקבוצה. הקפטן מקבל בונוס מורל קטן בעת המינוי, והבחירה נשמרת עם הקריירה.</p><div class="captain-box"><div style="display:flex;gap:12px;align-items:center;margin-bottom:12px"><div style="font-size:36px">${captain?'🧢':'🏟️'}</div><div><div style="font-size:11px;color:#94a3b8">הקפטן הנוכחי</div><div style="font-size:19px;font-weight:1000">${esc(captain?captain.name:'טרם נבחר קפטן')}</div><div style="font-size:12px;color:#cbd5e1">${captain?`דירוג ${captain.overall} · ${esc(captain.pos||'שחקן')}`:'בחר מנהיג מתוך הסגל שלך'}</div></div></div><label for="fc27-captain-select" style="display:block;font-size:13px;margin-bottom:6px">בחירת קפטן חדש</label><select id="fc27-captain-select">${roster.map(p=>`<option value="${esc(p.id)}" ${String(p.id)===String(gs.team.captainId)?'selected':''}>${esc(p.name)} · ${esc(p.pos||'') } · ${Number(p.overall)||0} OVR</option>`).join('')}</select><button id="fc27-captain-save" style="margin-top:10px" ${roster.length?'':'disabled'}>🧢 מינוי לקפטן</button><div id="fc27-captain-feedback" style="margin-top:9px;color:#a7f3d0;font-size:13px"></div></div>`;
+ const btn=s.querySelector('#fc27-captain-save');btn.addEventListener('click',()=>{
+  const id=s.querySelector('#fc27-captain-select').value;const p=(gs.team.roster||[]).find(x=>String(x.id)===String(id));if(!p)return;
+  if(String(gs.team.captainId)===String(p.id)){s.querySelector('#fc27-captain-feedback').textContent=`${p.name} כבר הקפטן הנוכחי.`;return;}
+  gs.team.captainId=p.id;gs.morale=Math.min(100,(Number(gs.morale)||50)+2);gs.newsFeed=gs.newsFeed||[];gs.newsFeed.unshift(`הודעה מהמועדון: ${p.name} מונה לקפטן הקבוצה. חדר ההלבשה קיבל זריקת עידוד.`);
+  try{if(typeof window.saveCareerNow==='function')window.saveCareerNow();}catch(e){}
+  render(s);const f=s.querySelector('#fc27-captain-feedback');if(f)f.textContent=`✅ ${p.name} מונה לקפטן. מורל הקבוצה עלה ב־2.`;
+  try{if(typeof window.initGame==='function')window.initGame();}catch(e){}
+ });
+}
+function boot(){addCaptainNav();}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,250));window.addEventListener('load',()=>setTimeout(boot,350));
+const oldOpen=window.openCareerHub;if(typeof oldOpen==='function')window.openCareerHub=function(){const r=oldOpen.apply(this,arguments);setTimeout(boot,100);return r;};
+const oldRender=window.renderCareerHub;if(typeof oldRender==='function')window.renderCareerHub=function(){const r=oldRender.apply(this,arguments);setTimeout(boot,100);return r;};
+})();
+</script>
+
+</body>
+</html>
